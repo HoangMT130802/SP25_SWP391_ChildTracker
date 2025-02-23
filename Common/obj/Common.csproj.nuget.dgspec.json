@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\Common\\Common.csproj": {}
+    "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\Common\\Common.csproj": {}
   },
   "projects": {
-    "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\Common\\Common.csproj": {
+    "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\Common\\Common.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\Common\\Common.csproj",
+        "projectUniqueName": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\Common\\Common.csproj",
         "projectName": "Common",
-        "projectPath": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\Common\\Common.csproj",
-        "packagesPath": "C:\\Users\\HP\\.nuget\\packages\\",
-        "outputPath": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\Common\\obj\\",
+        "projectPath": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\Common\\Common.csproj",
+        "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\Common\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\HP\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\ASUS\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -43,11 +43,18 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[9.0.2, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
@@ -64,7 +71,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.102/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

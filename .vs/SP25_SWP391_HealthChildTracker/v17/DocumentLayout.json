@@ -1,22 +1,22 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\",
+  "WorkspaceRootPath": "C:\\Users\\ASUS\\OneDrive\\Ta\u0300i li\u00EA\u0323u\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{E5026D8A-1286-45CC-807A-15F0F7C8A39D}|HealthChildTracker_API\\HealthChildTracker_API.csproj|d:\\fpt_course\\swp391\\sp25_swp391_healthchildtracker\\healthchildtracker_api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{E5026D8A-1286-45CC-807A-15F0F7C8A39D}|HealthChildTracker_API\\HealthChildTracker_API.csproj|solutionrelative:healthchildtracker_api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+      "AbsoluteMoniker": "D:0:0:{E5026D8A-1286-45CC-807A-15F0F7C8A39D}|HealthChildTracker_API\\HealthChildTracker_API.csproj|c:\\users\\asus\\onedrive\\ta\u0300i li\u00EA\u0323u\\swp391\\project swp391\\sp25_swp391_childtracker\\healthchildtracker_api\\controllers\\userdetailcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{E5026D8A-1286-45CC-807A-15F0F7C8A39D}|HealthChildTracker_API\\HealthChildTracker_API.csproj|solutionrelative:healthchildtracker_api\\controllers\\userdetailcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{F30E4422-BEEE-4F10-882C-568C4A53E49D}|Common\\Common.csproj|d:\\fpt_course\\swp391\\sp25_swp391_healthchildtracker\\common\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{F30E4422-BEEE-4F10-882C-568C4A53E49D}|Common\\Common.csproj|solutionrelative:common\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{E5026D8A-1286-45CC-807A-15F0F7C8A39D}|HealthChildTracker_API\\HealthChildTracker_API.csproj|c:\\users\\asus\\onedrive\\ta\u0300i li\u00EA\u0323u\\swp391\\project swp391\\sp25_swp391_childtracker\\healthchildtracker_api\\controllers\\doctorcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{E5026D8A-1286-45CC-807A-15F0F7C8A39D}|HealthChildTracker_API\\HealthChildTracker_API.csproj|solutionrelative:healthchildtracker_api\\controllers\\doctorcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{9611F554-741C-45B5-83A4-891C5CDB5EF3}|BusinessLogic\\BusinessLogic.csproj|d:\\fpt_course\\swp391\\sp25_swp391_healthchildtracker\\businesslogic\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{9611F554-741C-45B5-83A4-891C5CDB5EF3}|BusinessLogic\\BusinessLogic.csproj|solutionrelative:businesslogic\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{9611F554-741C-45B5-83A4-891C5CDB5EF3}|BusinessLogic\\BusinessLogic.csproj|c:\\users\\asus\\onedrive\\ta\u0300i li\u00EA\u0323u\\swp391\\project swp391\\sp25_swp391_childtracker\\businesslogic\\services\\implementations\\userservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9611F554-741C-45B5-83A4-891C5CDB5EF3}|BusinessLogic\\BusinessLogic.csproj|solutionrelative:businesslogic\\services\\implementations\\userservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{1A03FD93-384F-4D8F-AEDF-BB0720C579A4}|DataAccess\\DataAccess.csproj|d:\\fpt_course\\swp391\\sp25_swp391_healthchildtracker\\dataaccess\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{1A03FD93-384F-4D8F-AEDF-BB0720C579A4}|DataAccess\\DataAccess.csproj|solutionrelative:dataaccess\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{9611F554-741C-45B5-83A4-891C5CDB5EF3}|BusinessLogic\\BusinessLogic.csproj|c:\\users\\asus\\onedrive\\ta\u0300i li\u00EA\u0323u\\swp391\\project swp391\\sp25_swp391_childtracker\\businesslogic\\services\\implementations\\doctorservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9611F554-741C-45B5-83A4-891C5CDB5EF3}|BusinessLogic\\BusinessLogic.csproj|solutionrelative:businesslogic\\services\\implementations\\doctorservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -26,7 +26,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 623,
-          "SelectedChildIndex": 61,
+          "SelectedChildIndex": 62,
           "Children": [
             {
               "$type": "Bookmark",
@@ -39,10 +39,6 @@
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{004be353-6879-467c-9d1e-9ac23cdf6d49}"
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{1c64b9c2-e352-428e-a56d-0ace190b99a6}"
             },
             {
               "$type": "Bookmark",
@@ -99,10 +95,6 @@
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{873151d0-cf2e-48cc-b4bf-ad0394f6a3c3}"
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{c9c0ae26-aa77-11d2-b3f0-0000f87570ee}"
             },
             {
               "$type": "Bookmark",
@@ -274,52 +266,55 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "appsettings.json",
-              "DocumentMoniker": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\HealthChildTracker_API\\appsettings.json",
-              "RelativeDocumentMoniker": "HealthChildTracker_API\\appsettings.json",
-              "ToolTip": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\HealthChildTracker_API\\appsettings.json",
-              "RelativeToolTip": "HealthChildTracker_API\\appsettings.json",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAkAAAB9AAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-02-21T08:20:51.258Z",
+              "DocumentIndex": 1,
+              "Title": "DoctorController.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\OneDrive\\Ta\u0300i li\u00EA\u0323u\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\HealthChildTracker_API\\Controllers\\DoctorController.cs",
+              "RelativeDocumentMoniker": "HealthChildTracker_API\\Controllers\\DoctorController.cs",
+              "ToolTip": "C:\\Users\\ASUS\\OneDrive\\Ta\u0300i li\u00EA\u0323u\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\HealthChildTracker_API\\Controllers\\DoctorController.cs",
+              "RelativeToolTip": "HealthChildTracker_API\\Controllers\\DoctorController.cs",
+              "ViewState": "AgIAADcAAAAAAAAAAAAkwEYAAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-02-23T17:05:53.282Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "Class1.cs",
-              "DocumentMoniker": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\Common\\Class1.cs",
-              "RelativeDocumentMoniker": "Common\\Class1.cs",
-              "ToolTip": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\Common\\Class1.cs",
-              "RelativeToolTip": "Common\\Class1.cs",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "DocumentIndex": 3,
+              "Title": "DoctorService.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\OneDrive\\Ta\u0300i li\u00EA\u0323u\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\BusinessLogic\\Services\\Implementations\\DoctorService.cs",
+              "RelativeDocumentMoniker": "BusinessLogic\\Services\\Implementations\\DoctorService.cs",
+              "ToolTip": "C:\\Users\\ASUS\\OneDrive\\Ta\u0300i li\u00EA\u0323u\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\BusinessLogic\\Services\\Implementations\\DoctorService.cs",
+              "RelativeToolTip": "BusinessLogic\\Services\\Implementations\\DoctorService.cs",
+              "ViewState": "AgIAAEsAAAAAAAAAAAAowFwAAAAtAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-02-21T08:14:42.594Z"
+              "WhenOpened": "2025-02-23T17:04:12.187Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
-              "Title": "Class1.cs",
-              "DocumentMoniker": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\BusinessLogic\\Class1.cs",
-              "RelativeDocumentMoniker": "BusinessLogic\\Class1.cs",
-              "ToolTip": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\BusinessLogic\\Class1.cs",
-              "RelativeToolTip": "BusinessLogic\\Class1.cs",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "Title": "UserService.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\OneDrive\\Ta\u0300i li\u00EA\u0323u\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\BusinessLogic\\Services\\Implementations\\UserService.cs",
+              "RelativeDocumentMoniker": "BusinessLogic\\Services\\Implementations\\UserService.cs",
+              "ToolTip": "C:\\Users\\ASUS\\OneDrive\\Ta\u0300i li\u00EA\u0323u\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\BusinessLogic\\Services\\Implementations\\UserService.cs",
+              "RelativeToolTip": "BusinessLogic\\Services\\Implementations\\UserService.cs",
+              "ViewState": "AgIAAFsAAAAAAAAAAAAkwGoAAAANAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-02-21T08:12:48.303Z"
+              "WhenOpened": "2025-02-23T16:58:24.537Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "Class1.cs",
-              "DocumentMoniker": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\DataAccess\\Class1.cs",
-              "RelativeDocumentMoniker": "DataAccess\\Class1.cs",
-              "ToolTip": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\DataAccess\\Class1.cs",
-              "RelativeToolTip": "DataAccess\\Class1.cs",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "DocumentIndex": 0,
+              "Title": "UserDetailController.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\OneDrive\\Ta\u0300i li\u00EA\u0323u\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\HealthChildTracker_API\\Controllers\\UserDetailController.cs",
+              "RelativeDocumentMoniker": "HealthChildTracker_API\\Controllers\\UserDetailController.cs",
+              "ToolTip": "C:\\Users\\ASUS\\OneDrive\\Ta\u0300i li\u00EA\u0323u\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\HealthChildTracker_API\\Controllers\\UserDetailController.cs",
+              "RelativeToolTip": "HealthChildTracker_API\\Controllers\\UserDetailController.cs",
+              "ViewState": "AgIAACQAAAAAAAAAAAAYwDQAAAATAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-02-21T08:12:23.577Z"
+              "WhenOpened": "2025-02-23T16:57:43.143Z",
+              "EditorCaption": ""
             }
           ]
         },

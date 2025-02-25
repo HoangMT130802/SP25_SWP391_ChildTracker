@@ -19,10 +19,9 @@ builder.Services.AddDbContext<HealthChildTrackerContext>(options =>
 
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-// Ðky IUserService
 builder.Services.AddScoped<IUserService, UserService>();
-// Ðky IDoctorService
 builder.Services.AddScoped<IDoctorService, DoctorService>();
+builder.Services.AddScoped<IChildrenService, ChildrenService>();
 
 
 var app = builder.Build();

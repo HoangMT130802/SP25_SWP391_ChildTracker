@@ -81,10 +81,10 @@ namespace BusinessLogic.Services.Implementations
                 // Calculate BMI: weight (kg) / (height (m) * height (m))
                 // Convert height from cm to m
                 decimal heightInMeters = recordDTO.Height / 100;
-                record.BMI = Math.Round(recordDTO.Weight / (heightInMeters * heightInMeters), 2);
+                record.Bmi = Math.Round(recordDTO.Weight / (heightInMeters * heightInMeters), 2);
 
-                record.Created_at = DateTime.UtcNow;
-                record.Updated_at = DateTime.UtcNow;
+                record.CreatedAt = DateTime.UtcNow;
+                record.UpdatedAt = DateTime.UtcNow;
 
                 await recordRepository.AddAsync(record);
                 await _unitOfWork.SaveChangesAsync();
@@ -114,9 +114,9 @@ namespace BusinessLogic.Services.Implementations
 
                 // Recalculate BMI
                 decimal heightInMeters = record.Height / 100;
-                record.BMI = Math.Round(record.Weight / (heightInMeters * heightInMeters), 2);
+                record.Bmi = Math.Round(record.Weight / (heightInMeters * heightInMeters), 2);
 
-                record.Updated_at = DateTime.UtcNow;
+                record.UpdatedAt = DateTime.UtcNow;
 
                 recordRepository.Update(record);
                 await _unitOfWork.SaveChangesAsync();

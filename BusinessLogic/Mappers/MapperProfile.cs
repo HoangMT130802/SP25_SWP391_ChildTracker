@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using BusinessLogic.DTOs.Authentication;
+using BusinessLogic.DTOs.Children;
 using DataAccess.Entities;
 
 public class MapperProfile : Profile
@@ -20,5 +21,9 @@ public class MapperProfile : Profile
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => true))
             .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
             .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+        //Child mapping
+        CreateMap<Child, ChildDTO>();
+        CreateMap<CreateChildDTO, Child>();
+        CreateMap<UpdateChildDTO, Child>();
     }
 }

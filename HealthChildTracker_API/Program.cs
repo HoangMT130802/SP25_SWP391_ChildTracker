@@ -11,16 +11,17 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
+//đăng ký db
 builder.Services.AddDbContext<HealthChildTrackerContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-
+// đăng ký các service
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IChildService, ChildService>();
 // Đăng ký automapper
 builder.Services.AddAutoMapper(typeof(MapperProfile));
-// cấu hình c
+// cấu hình cors
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin",

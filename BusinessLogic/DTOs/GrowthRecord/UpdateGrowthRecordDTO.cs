@@ -6,7 +6,11 @@ using System.Threading.Tasks;
 
 namespace BusinessLogic.DTOs.GrowthRecord
 {
-    internal class UpdateGrowthRecordDTO
+    public class UpdateGrowthRecordDTO
     {
+        public decimal Height { get; set; }
+        public decimal Weight { get; set; }
+        public decimal HeadCircumference { get; set; }
+        public string Note { get; set; }
     }
 }

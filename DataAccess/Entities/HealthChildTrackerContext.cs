@@ -56,14 +56,12 @@ public partial class HealthChildTrackerContext : DbContext
     }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
          => optionsBuilder.UseSqlServer(GetConnectionString("DefaultConnection"));
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Appointment>(entity =>
         {
             entity.HasKey(e => e.AppointmentId).HasName("appointments_appointmentid_primary");
 
-            entity.Property(e => e.AppointmentId).ValueGeneratedNever();
             entity.Property(e => e.ChildId).HasColumnName("child_id");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Description).IsRequired();
@@ -102,9 +100,7 @@ public partial class HealthChildTrackerContext : DbContext
         {
             entity.HasKey(e => e.BlogId).HasName("blogs_blog_id_primary");
 
-            entity.Property(e => e.BlogId)
-                .ValueGeneratedNever()
-                .HasColumnName("blog_id");
+            entity.Property(e => e.BlogId).HasColumnName("blog_id");
             entity.Property(e => e.AuthorId).HasColumnName("author_id");
             entity.Property(e => e.Content)
                 .IsRequired()
@@ -135,9 +131,7 @@ public partial class HealthChildTrackerContext : DbContext
         {
             entity.HasKey(e => e.ChildId).HasName("children_child_id_primary");
 
-            entity.Property(e => e.ChildId)
-                .ValueGeneratedNever()
-                .HasColumnName("child_id");
+            entity.Property(e => e.ChildId).HasColumnName("child_id");
             entity.Property(e => e.AllergiesNotes).IsRequired();
             entity.Property(e => e.BirthDate)
                 .HasColumnType("datetime")
@@ -174,7 +168,6 @@ public partial class HealthChildTrackerContext : DbContext
         {
             entity.HasKey(e => e.RequestId).HasName("consultationrequests_requestid_primary");
 
-            entity.Property(e => e.RequestId).ValueGeneratedNever();
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Description).IsRequired();
             entity.Property(e => e.Status)
@@ -195,7 +188,6 @@ public partial class HealthChildTrackerContext : DbContext
         {
             entity.HasKey(e => e.ResponseId).HasName("consultationresponses_responseid_primary");
 
-            entity.Property(e => e.ResponseId).ValueGeneratedNever();
             entity.Property(e => e.Attachments).IsRequired();
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Response).IsRequired();
@@ -215,7 +207,6 @@ public partial class HealthChildTrackerContext : DbContext
         {
             entity.HasKey(e => e.RecordId).HasName("dailyrecords_recordid_primary");
 
-            entity.Property(e => e.RecordId).ValueGeneratedNever();
             entity.Property(e => e.Note).IsRequired();
             entity.Property(e => e.SleepHours).HasColumnType("decimal(8, 2)");
 
@@ -229,7 +220,6 @@ public partial class HealthChildTrackerContext : DbContext
         {
             entity.HasKey(e => e.DoctorProfileId).HasName("doctorprofiles_doctorprofileid_primary");
 
-            entity.Property(e => e.DoctorProfileId).ValueGeneratedNever();
             entity.Property(e => e.AverageRating).HasColumnType("decimal(3, 2)");
             entity.Property(e => e.Biography).IsRequired();
             entity.Property(e => e.LicenseNumber)
@@ -254,7 +244,6 @@ public partial class HealthChildTrackerContext : DbContext
 
             entity.ToTable("DoctorSchedule");
 
-            entity.Property(e => e.ScheduleId).ValueGeneratedNever();
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.DoctorId).HasColumnName("doctor_id");
             entity.Property(e => e.Status)
@@ -272,7 +261,6 @@ public partial class HealthChildTrackerContext : DbContext
         {
             entity.HasKey(e => e.RecordId).HasName("growthrecords_recordid_primary");
 
-            entity.Property(e => e.RecordId).ValueGeneratedNever();
             entity.Property(e => e.Bmi)
                 .HasColumnType("decimal(8, 2)")
                 .HasColumnName("BMI");
@@ -302,9 +290,7 @@ public partial class HealthChildTrackerContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("growthstandards_id_primary");
 
-            entity.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
+            entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Gender)
                 .IsRequired()
                 .HasMaxLength(10);
@@ -336,7 +322,6 @@ public partial class HealthChildTrackerContext : DbContext
         {
             entity.HasKey(e => e.MembershipId).HasName("memberships_membershipid_primary");
 
-            entity.Property(e => e.MembershipId).ValueGeneratedNever();
             entity.Property(e => e.Description).IsRequired();
             entity.Property(e => e.Name)
                 .IsRequired()
@@ -348,7 +333,6 @@ public partial class HealthChildTrackerContext : DbContext
         {
             entity.HasKey(e => e.RatingId).HasName("ratings_ratingid_primary");
 
-            entity.Property(e => e.RatingId).ValueGeneratedNever();
             entity.Property(e => e.Comment).IsRequired();
             entity.Property(e => e.Rating1).HasColumnName("Rating");
 
@@ -370,9 +354,7 @@ public partial class HealthChildTrackerContext : DbContext
         {
             entity.HasKey(e => e.TransactionId).HasName("transactions_transaction_id_primary");
 
-            entity.Property(e => e.TransactionId)
-                .ValueGeneratedNever()
-                .HasColumnName("transaction_id");
+            entity.Property(e => e.TransactionId).HasColumnName("transaction_id");
             entity.Property(e => e.Amount)
                 .HasColumnType("decimal(8, 2)")
                 .HasColumnName("amount");
@@ -441,7 +423,6 @@ public partial class HealthChildTrackerContext : DbContext
         {
             entity.HasKey(e => e.UserMembershipId).HasName("usermemberships_usermembershipid_primary");
 
-            entity.Property(e => e.UserMembershipId).ValueGeneratedNever();
             entity.Property(e => e.EndDate).HasColumnType("datetime");
             entity.Property(e => e.LastRenewalDate).HasColumnType("datetime");
             entity.Property(e => e.StartDate).HasColumnType("datetime");

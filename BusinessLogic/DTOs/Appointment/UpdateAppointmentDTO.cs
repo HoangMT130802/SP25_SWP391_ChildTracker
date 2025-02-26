@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace BusinessLogic.DTOs.Appointment
 {
-    internal class UpdateAppointmentDTO
+    public class UpdateAppointmentDTO
     {
+        public string Status { get; set; }
+        public string MeetingLink { get; set; }
+        public string Note { get; set; }
     }
 }

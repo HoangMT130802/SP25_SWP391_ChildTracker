@@ -6,7 +6,12 @@ using System.Threading.Tasks;
 
 namespace BusinessLogic.DTOs.Doctor_Schedule
 {
-    internal class CreateScheduleDTO
+    public class CreateScheduleDTO
     {
+        public int DoctorId { get; set; }
+        public DateOnly WorkDate { get; set; }
+        public TimeOnly StartTime { get; set; }
+        public TimeOnly EndTime { get; set; }
+        public int SlotDuration { get; set; } // Thời lượng mỗi slot (phút)
     }
 }

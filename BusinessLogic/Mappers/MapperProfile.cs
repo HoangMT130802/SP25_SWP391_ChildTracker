@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BusinessLogic.DTOs.Authentication;
 using BusinessLogic.DTOs.Children;
+using BusinessLogic.DTOs.GrowthRecord;
 using DataAccess.Entities;
 
 public class MapperProfile : Profile
@@ -25,5 +26,10 @@ public class MapperProfile : Profile
         CreateMap<Child, ChildDTO>();
         CreateMap<CreateChildDTO, Child>();
         CreateMap<UpdateChildDTO, Child>();
+
+        // GrowthRecord mappings
+        CreateMap<GrowthRecord, GrowthRecordDTO>();
+        CreateMap<CreateGrowthRecordDTO, GrowthRecord>();
+        CreateMap<UpdateGrowthRecordDTO, GrowthRecord>();
     }
 }

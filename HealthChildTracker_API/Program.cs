@@ -19,6 +19,7 @@ builder.Services.AddDbContext<HealthChildTrackerContext>(options =>
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IChildService, ChildService>();
+builder.Services.AddScoped<IGrowthRecordService, GrowthRecordService>();
 // Đăng ký automapper
 builder.Services.AddAutoMapper(typeof(MapperProfile));
 // cấu hình cors

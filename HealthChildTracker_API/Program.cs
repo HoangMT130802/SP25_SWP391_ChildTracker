@@ -20,14 +20,14 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 // Đăng ký automapper
 builder.Services.AddAutoMapper(typeof(MapperProfile));
-// cấu hình cors
+// cấu hình c
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin",
         builder =>
         {
             builder
-                .WithOrigins("http://localhost:5173") // URL của React app
+                .WithOrigins("http://localhost:5174") // URL của React app
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials();

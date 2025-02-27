@@ -22,6 +22,7 @@ builder.Services.AddScoped<IChildService, ChildService>();
 builder.Services.AddScoped<IGrowthRecordService, GrowthRecordService>();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IDoctorScheduleService, DoctorScheduleService>();
+builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 // Đăng ký automapper
 builder.Services.AddAutoMapper(typeof(MapperProfile));
 // cấu hình cors
@@ -31,7 +32,7 @@ builder.Services.AddCors(options =>
         builder =>
         {
             builder
-                .WithOrigins("http://localhost:5174") // URL của React app
+                .WithOrigins("http://localhost:5174") 
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials();

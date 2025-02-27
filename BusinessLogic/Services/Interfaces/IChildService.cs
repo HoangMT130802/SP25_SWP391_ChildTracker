@@ -13,6 +13,7 @@ namespace BusinessLogic.Services.Interfaces
         Task<ChildDTO> GetChildByIdAsync(int childId, int userId);
         Task<ChildDTO> CreateChildAsync(int userId, CreateChildDTO childDTO);
         Task<ChildDTO> UpdateChildAsync(int childId, int userId, UpdateChildDTO childDTO);
-        Task<bool> DeleteChildAsync(int childId, int userId);
+        Task<bool> SoftDeleteChildAsync(int childId, int userId);
+        Task<bool> HardDeleteChildAsync(int childId, int userId)
     }
 }

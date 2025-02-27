@@ -112,7 +112,7 @@ namespace BusinessLogic.Services.Implementations
             }
         }
 
-        public async Task<bool> DeleteChildAsync(int childId, int userId)
+        public async Task<bool> SoftDeleteChildAsync(int childId, int userId)
         {
             try
             {
@@ -136,6 +136,81 @@ namespace BusinessLogic.Services.Implementations
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error deleting child {childId} for user {userId}");
+                throw;
+            }
+        }
+        public async Task<bool> HardDeleteChildAsync(int childId, int userId)
+        {
+            try
+            {            
+                var childRepository = _unitOfWork.GetRepository<Child>();
+             
+                var child = await childRepository.GetAsync(c => c.ChildId == childId && c.UserId == userId);
+
+                if (child == null)
+                {
+                    throw new KeyNotFoundException($"Child with ID {childId} not found for user {userId}");
+                }
+
+                // Xóa các bản ghi liên quan trước
+                
+
+           /*     // Xóa GrowthRecords
+                var growthRecordRepository = _unitOfWork.GetRepository<GrowthRecord>();
+                var growthRecords = await growthRecordRepository.GetAllAsync(gr => gr.ChildId == childId);
+                foreach (var record in growthRecords)
+                {
+                    growthRecordRepository.Delete(record);
+                }
+
+                // Xóa DailyRecords
+                var dailyRecordRepository = _unitOfWork.GetRepository<DailyRecord>();
+                var dailyRecords = await dailyRecordRepository.GetAllAsync(dr => dr.ChildId == childId);
+                foreach (var record in dailyRecords)
+                {
+                    dailyRecordRepository.Delete(record);
+                }
+
+                // Xóa ConsultationRequests và ConsultationResponses liên quan
+                var consultationRequestRepository = _unitOfWork.GetRepository<ConsultationRequest>();
+                var consultationRequests = await consultationRequestRepository.GetAllAsync(cr => cr.ChildId == childId);
+
+                var consultationResponseRepository = _unitOfWork.GetRepository<ConsultationResponse>();
+                foreach (var request in consultationRequests)
+                {
+                    var responses = await consultationResponseRepository.GetAllAsync(cr => cr.RequestId == request.RequestId);
+                    foreach (var response in responses)
+                    {
+                        consultationResponseRepository.Delete(response);
+                    }
+                    consultationRequestRepository.Delete(request);
+                }
+
+                // Xóa Appointments và Ratings liên quan
+                var appointmentRepository = _unitOfWork.GetRepository<Appointment>();
+                var appointments = await appointmentRepository.GetAllAsync(a => a.ChildId == childId);
+
+                var ratingRepository = _unitOfWork.GetRepository<Rating>();
+                foreach (var appointment in appointments)
+                {
+                    var ratings = await ratingRepository.GetAllAsync(r => r.AppointmentId == appointment.AppointmentId);
+                    foreach (var rating in ratings)
+                    {
+                        ratingRepository.Delete(rating);
+                    }
+                    appointmentRepository.Delete(appointment);
+                }*/
+
+               
+                childRepository.Delete(child);
+
+                await _unitOfWork.SaveChangesAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error hard deleting child {childId} for user {userId}");
                 throw;
             }
         }

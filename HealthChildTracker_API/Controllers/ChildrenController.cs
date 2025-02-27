@@ -2,6 +2,7 @@
 using BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace HealthChildTracker_API.Controllers
 {
@@ -86,12 +87,12 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpDelete("{childId}/user/{userId}")]
+        [HttpDelete("SoftDelete{childId}/user/{userId}")]
         public async Task<IActionResult> DeleteChild(int childId, int userId)
         {
             try
             {
-                var result = await _childService.DeleteChildAsync(childId, userId);
+                var result = await _childService.SoftDeleteChildAsync(childId, userId);
                 return Ok(new { success = result });
             }
             catch (KeyNotFoundException ex)
@@ -102,6 +103,32 @@ namespace HealthChildTracker_API.Controllers
             {
                 _logger.LogError(ex, $"Error deleting child {childId} for user {userId}");
                 return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+        [HttpDelete("harddelete/{childId}/user/{userId}")]
+        public async Task<IActionResult> HardDeleteChild(int childId, int userId)
+        {
+            try
+            {
+                // Kiểm tra quyền truy cập (nếu cần)
+                // Ví dụ: Chỉ cho phép admin hoặc chủ sở hữu xóa
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (currentUserId == null || int.Parse(currentUserId) != userId)
+                {
+                    return Forbid("You don't have permission to delete this child record");
+                }
+
+                var result = await _childService.HardDeleteChildAsync(childId, userId);
+                return Ok(new { success = result, message = "Child record has been permanently deleted" });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error hard deleting child {childId} for user {userId}");
+                return StatusCode(500, new { message = "Internal server error occurred while trying to delete the child record" });
             }
         }
     }

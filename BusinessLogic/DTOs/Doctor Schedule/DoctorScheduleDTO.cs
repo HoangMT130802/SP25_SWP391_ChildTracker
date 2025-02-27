@@ -18,6 +18,7 @@ namespace BusinessLogic.DTOs.Doctor_Schedule
         public string Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        public List<TimeSlotDTO> AvailableSlots { get; set; }
     }
 
 }

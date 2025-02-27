@@ -30,7 +30,7 @@ namespace BusinessLogic.Services.Implementations
             try
             {
                 var userRepository = _unitOfWork.GetRepository<User>();
-                // Chỉ lấy các user có role là Doctor và include DoctorProfiles
+                
                 var doctors = await userRepository.FindAsync(
                     u => u.Role == "Doctor",
                     includeProperties: "DoctorProfiles");
@@ -48,7 +48,7 @@ namespace BusinessLogic.Services.Implementations
             try
             {
                 var userRepository = _unitOfWork.GetRepository<User>();
-                // Chỉ lấy user có role là Doctor và include DoctorProfiles
+               
                 var doctor = await userRepository.GetAsync(
                     u => u.UserId == doctorId && u.Role == "Doctor",
                     includeProperties: "DoctorProfiles");
@@ -69,20 +69,19 @@ namespace BusinessLogic.Services.Implementations
 
         public async Task<DoctorDTO> CreateDoctorAsync(CreateDoctorDTO doctorDTO)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                // Kiểm tra username và email đã tồn tại chưa
+
                 var userRepository = _unitOfWork.GetRepository<User>();
-                var existingUser = await userRepository.GetAsync(u =>
+                /*var existingUser = await userRepository.GetAsync(u =>
                     u.Username == doctorDTO.Username || u.Email == doctorDTO.Email);
 
                 if (existingUser != null)
                 {
                     throw new InvalidOperationException("Username or email already exists");
-                }
+                }*/
 
-                // Tạo user mới với role Doctor
+
                 var user = new User
                 {
                     Username = doctorDTO.Username,
@@ -91,7 +90,7 @@ namespace BusinessLogic.Services.Implementations
                     FullName = doctorDTO.FullName,
                     Phone = doctorDTO.Phone,
                     Address = doctorDTO.Address,
-                    Role = "Doctor", // Đảm bảo role luôn là Doctor
+                    Role = "Doctor", 
                     Status = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -112,24 +111,40 @@ namespace BusinessLogic.Services.Implementations
                     Biography = doctorDTO.Biography,
                     AverageRating = 0,
                     TotalRatings = 0,
-                    IsVerified = false
+                    IsVerified = true
                 };
 
                 await profileRepository.AddAsync(profile);
                 await _unitOfWork.SaveChangesAsync();
 
-                await transaction.CommitAsync();
+                // Tạo DoctorDTO thủ công thay vì sử dụng AutoMapper
+                var result = new DoctorDTO
+                {
+                    UserId = user.UserId,
+                    Username = user.Username,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    Phone = user.Phone,
+                    Address = user.Address,
+                    Role = user.Role,
+                    Status = user.Status,
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = user.UpdatedAt,
+                    Specialization = profile.Specialization,
+                    Qualification = profile.Qualification,
+                    Experience = profile.Experience,
+                    LicenseNumber = profile.LicenseNumber,
+                    Biography = profile.Biography,
+                    AverageRating = profile.AverageRating,
+                    TotalRatings = profile.TotalRatings,
+                    IsVerified = profile.IsVerified
+                };
 
-                // Load lại user với profile để trả về
-                var createdDoctor = await userRepository.GetAsync(
-                    u => u.UserId == user.UserId,
-                    includeProperties: "DoctorProfiles");
-                return _mapper.Map<DoctorDTO>(createdDoctor);
+                return result;
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error creating doctor");
+                _logger.LogError(ex, "Error creating doctor: {Message}", ex.Message);
                 throw;
             }
         }
@@ -138,7 +153,7 @@ namespace BusinessLogic.Services.Implementations
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                // Lấy thông tin doctor
+                
                 var userRepository = _unitOfWork.GetRepository<User>();
                 var doctor = await userRepository.GetAsync(u => u.UserId == doctorId && u.Role == "Doctor");
 
@@ -147,7 +162,7 @@ namespace BusinessLogic.Services.Implementations
                     throw new KeyNotFoundException($"Doctor with ID {doctorId} not found");
                 }
 
-                // Cập nhật thông tin user
+                
                 doctor.Email = doctorDTO.Email;
                 doctor.FullName = doctorDTO.FullName;
                 doctor.Phone = doctorDTO.Phone;
@@ -158,7 +173,7 @@ namespace BusinessLogic.Services.Implementations
                 userRepository.Update(doctor);
                 await _unitOfWork.SaveChangesAsync();
 
-                // Cập nhật thông tin profile
+                
                 var profileRepository = _unitOfWork.GetRepository<DoctorProfile>();
                 var profile = await profileRepository.GetAsync(p => p.UserId == doctorId);
 
@@ -177,7 +192,7 @@ namespace BusinessLogic.Services.Implementations
 
                 await transaction.CommitAsync();
 
-                // Load lại user với profile để trả về
+               
                 var updatedDoctor = await userRepository.GetAsync(u => u.UserId == doctorId, "DoctorProfiles");
                 return _mapper.Map<DoctorDTO>(updatedDoctor);
             }
@@ -201,7 +216,7 @@ namespace BusinessLogic.Services.Implementations
                     throw new KeyNotFoundException($"Doctor with ID {doctorId} not found");
                 }
 
-                // Soft delete
+
                 doctor.Status = false;
                 doctor.UpdatedAt = DateTime.UtcNow;
 

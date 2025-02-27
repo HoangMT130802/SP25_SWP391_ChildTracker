@@ -20,7 +20,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous] // Cho phép xem danh sách bác sĩ mà không cần đăng nhập
+        [AllowAnonymous]
         public async Task<IActionResult> GetAllDoctors()
         {
             try
@@ -36,7 +36,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpGet("{doctorId}")]
-        [AllowAnonymous] // Cho phép xem thông tin bác sĩ mà không cần đăng nhập
+        [AllowAnonymous]
         public async Task<IActionResult> GetDoctorById(int doctorId)
         {
             try
@@ -56,7 +56,8 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")] // Chỉ Admin mới được tạo bác sĩ
+        /*[Authorize(Roles = "Admin")] */
+        [AllowAnonymous]
         public async Task<IActionResult> CreateDoctor([FromBody] CreateDoctorDTO doctorDTO)
         {
             try
@@ -76,7 +77,8 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpPut("{doctorId}")]
-        [Authorize(Roles = "Admin")] // Chỉ Admin mới được cập nhật thông tin bác sĩ
+        /*[Authorize(Roles = "Admin")] */
+        [AllowAnonymous]
         public async Task<IActionResult> UpdateDoctor(int doctorId, [FromBody] UpdateDoctorDTO doctorDTO)
         {
             try
@@ -100,7 +102,8 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpDelete("{doctorId}")]
-        [Authorize(Roles = "Admin")] // Chỉ Admin mới được xóa bác sĩ
+        /*[Authorize(Roles = "Admin")] */
+        [AllowAnonymous]
         public async Task<IActionResult> DeleteDoctor(int doctorId)
         {
             try

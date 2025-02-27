@@ -110,8 +110,7 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                // Kiểm tra quyền truy cập (nếu cần)
-                // Ví dụ: Chỉ cho phép admin hoặc chủ sở hữu xóa
+                
                 var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (currentUserId == null || int.Parse(currentUserId) != userId)
                 {

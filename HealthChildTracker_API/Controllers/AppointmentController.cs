@@ -42,7 +42,7 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                // Kiểm tra quyền - người dùng chỉ có thể xem cuộc hẹn của chính mình
+              
                 var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
@@ -66,7 +66,7 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                // Kiểm tra quyền - bác sĩ chỉ có thể xem cuộc hẹn của chính mình
+               
                 var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
@@ -90,8 +90,7 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                // Kiểm tra quyền - người dùng chỉ có thể xem cuộc hẹn của con mình
-                // Cần thêm logic để kiểm tra xem childId có thuộc về người dùng hiện tại không
+               
 
                 var appointments = await _appointmentService.GetChildAppointmentsAsync(childId);
                 return Ok(appointments);
@@ -110,7 +109,7 @@ namespace HealthChildTracker_API.Controllers
             {
                 var appointment = await _appointmentService.GetAppointmentByIdAsync(appointmentId);
 
-                // Kiểm tra quyền - người dùng chỉ có thể xem cuộc hẹn của chính mình
+               
                 var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
@@ -137,7 +136,7 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                // Kiểm tra quyền - người dùng chỉ có thể tạo cuộc hẹn cho chính mình
+                
                 var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
                 if (currentUserId != appointmentDTO.UserId)
@@ -172,7 +171,7 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                // Kiểm tra quyền - chỉ bác sĩ hoặc admin có thể cập nhật cuộc hẹn
+                
                 var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
@@ -230,7 +229,7 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                // Kiểm tra quyền - người dùng chỉ có thể xem cuộc hẹn của chính mình
+              
                 var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
@@ -254,7 +253,7 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                // Kiểm tra quyền - bác sĩ chỉ có thể xem cuộc hẹn của chính mình
+                
                 var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 

@@ -95,7 +95,7 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                // Kiểm tra quyền - chỉ bác sĩ có thể tạo lịch cho chính mình hoặc admin có thể tạo cho bất kỳ bác sĩ nào
+               
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
@@ -132,7 +132,7 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                // Kiểm tra quyền - chỉ bác sĩ có thể cập nhật lịch của chính mình hoặc admin có thể cập nhật cho bất kỳ bác sĩ nào
+                
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
@@ -170,7 +170,7 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                // Kiểm tra quyền - chỉ bác sĩ có thể xóa lịch của chính mình hoặc admin có thể xóa cho bất kỳ bác sĩ nào
+                
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 

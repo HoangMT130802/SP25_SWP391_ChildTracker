@@ -12,6 +12,8 @@ namespace BusinessLogic.Services.Interfaces
     {
         Task<IEnumerable<DoctorProfile>> GetAllDoctorsAsync();
         Task<DoctorProfile> GetDoctorByIdAsync(int doctorId);
+        Task<List<DoctorDTO>> SearchNameDoctor(String search);
+        Task<List<DoctorDTO>> SearchSpecialization(String search);
         Task CreateDoctorAsync(CreateDoctorDTO doctorDto);
         Task UpdateDoctorAsync(int doctorId, UpdateDoctorDTO doctorDto);
         Task DeleteDoctorAsync(int doctorId);

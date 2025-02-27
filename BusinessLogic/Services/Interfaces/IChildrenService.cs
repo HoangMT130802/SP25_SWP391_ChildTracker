@@ -14,7 +14,7 @@ namespace BusinessLogic.Services.Interfaces
         Task<List<ChildrenDTO>> GetChildrenByUserIdAsync(int userId);
         Task<PaginatedList<ChildrenDTO>> GetChildrenPaginationAsync(int userId, int page, int page_size);
         Task<ChildrenDTO> GetChildByIdAsync(int userId, int childId);
-        Task<ChildrenDTO> SearchNameChild(String search, int userId);
+        Task<List<ChildrenDTO>> SearchNameChild(String search, int userId);
         Task<ChildrenDTO> CreateChildAsync(CreateChildrenDTO createDTO, int userId);
         Task<ChildrenDTO> UpdateChildAsync(int userId, int childId, UpdateChildrenDTO updateDTO);
         Task DeleteChildAsync(int childId);

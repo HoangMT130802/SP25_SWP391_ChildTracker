@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
+using BusinessLogic.DTOs.Children;
 using BusinessLogic.DTOs.Doctor;
 using BusinessLogic.Services.Interfaces;
 using DataAccess.Models;
 using DataAccess.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace BusinessLogic.Services.Implementations
 {
@@ -33,6 +31,63 @@ namespace BusinessLogic.Services.Implementations
             return await _doctorRepository.GetByIdAsync(doctorId);
         }
 
+        // tìm kiếm theo tên bác sĩ
+        public async Task<List<DoctorDTO>> SearchNameDoctor(String search)
+        {
+            var result = await _userRepository.GetAllQueryable()
+                .Include(u => u.DoctorProfiles)
+                .Where(u => u.FullName.ToLower().Contains(search.ToLower()) && u.Role == "Doctor")
+                .ToListAsync();
+            if (!result.Any()) 
+            {
+                throw new Exception("Không tìm thấy bác sĩ");
+            }
+
+            return result.Select(u => new DoctorDTO
+            {
+                FullName = u.FullName,
+                DoctorProfile = new DoctorProfileDTO
+                {
+                    DoctorProfileId = u.DoctorProfiles.First().DoctorProfileId,
+                    Specialization = u.DoctorProfiles.First().Specialization,
+                    Qualification = u.DoctorProfiles.First().Qualification,
+                    Experience = u.DoctorProfiles.First().Experience,
+                    LicenseNumber = u.DoctorProfiles.First().LicenseNumber,
+                    Biography = u.DoctorProfiles.First().Biography,
+                    AverageRating = u.DoctorProfiles.First().AverageRating,
+                    TotalRatings = u.DoctorProfiles.First().TotalRatings
+                }
+            }).ToList();
+        }
+
+        // tìm kiếm theo chuyên môn 
+        public async Task<List<DoctorDTO>> SearchSpecialization(String search)
+        {
+            var result = await _doctorRepository.GetAllQueryable()
+                .Include(d => d.User)
+                .Where(d => d.Specialization.ToLower().Contains(search.ToLower()))
+                .ToListAsync();
+            if (!result.Any())
+            {
+                throw new Exception("Không tìm thấy bác sĩ");
+            }
+
+            return result.Select(d => new DoctorDTO
+            {
+                FullName = d.User.FullName, // tên bác sĩ từ User
+                DoctorProfile = new DoctorProfileDTO
+                {
+                    DoctorProfileId = d.DoctorProfileId,
+                    Specialization = d.Specialization,
+                    Qualification = d.Qualification,
+                    Experience = d.Experience,
+                    LicenseNumber = d.LicenseNumber,
+                    Biography = d.Biography,
+                    AverageRating = d.AverageRating,
+                    TotalRatings = d.TotalRatings
+                }
+            }).ToList();
+        }
 
         public async Task CreateDoctorAsync(CreateDoctorDTO doctorDto)
         {

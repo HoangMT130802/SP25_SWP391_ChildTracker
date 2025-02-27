@@ -41,6 +41,38 @@ namespace API.Controllers
             return Ok(doctor);
         }
 
+
+        // tim kiếm bác sĩ theo tên
+        [HttpGet("SearchDoctorByName")]
+        public async Task<ActionResult> GetDoctorByName(string search)
+        {
+            try
+            {
+                var doctors = await _doctorService.SearchNameDoctor(search);
+                return Ok(doctors);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+
+        // tìm kiếm theo chuyên môn 
+        [HttpGet("SearchDoctorBySpecialization")]
+        public async Task<ActionResult> GetDoctorBySpecialization(string search)
+        {
+            try
+            {
+                var doctors = await _doctorService.SearchSpecialization(search);
+                return Ok(doctors);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpPost]
         //[Authorize(Roles = "Admin")]
         public async Task<ActionResult> CreateDoctor([FromBody] CreateDoctorDTO doctorDto)

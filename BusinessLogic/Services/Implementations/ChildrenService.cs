@@ -85,31 +85,31 @@ namespace BusinessLogic.Services.Implementations
         }
 
         // Tìm Trẻ theo tên
-        public async Task<ChildrenDTO> SearchNameChild(String search, int userId)
+        public async Task<List<ChildrenDTO>> SearchNameChild(String search, int userId)
         {
             var result = await _childrenRepository.GetAllQueryable()
                 .Where(ch => ch.FullName.ToLower().Contains(search.ToLower()) && ch.UserId == userId)
-                .FirstOrDefaultAsync();
+                .ToListAsync();
             if (result == null)
             {
                 throw new Exception("Tên trẻ không tồn tại");
             }
 
-            return new ChildrenDTO
+            return result.Select(ch => new ChildrenDTO
             {
-                child_id = result.ChildId,
-                FullName = result.FullName,
-                ParentName = result.ParentName,
-                ParentNumber = result.ParentNumber,
-                birth_date = result.BirthDate,
-                gender = result.Gender,
-                BloodType = result.BloodType,
-                AllergiesNotes = result.AllergiesNotes,
-                MedicalHistory = result.MedicalHistory,
-                Status = result.Status,
-                CreatedAt = result.CreatedAt,
-                UpdatedAt = result.UpdateAt
-            };
+                child_id = ch.ChildId,
+                FullName = ch.FullName,
+                ParentName = ch.ParentName,
+                ParentNumber = ch.ParentNumber,
+                birth_date = ch.BirthDate,
+                gender = ch.Gender,
+                BloodType = ch.BloodType,
+                AllergiesNotes = ch.AllergiesNotes,
+                MedicalHistory = ch.MedicalHistory,
+                Status = ch.Status,
+                CreatedAt = ch.CreatedAt,
+                UpdatedAt = ch.UpdateAt
+            }).ToList(); 
         }
 
 

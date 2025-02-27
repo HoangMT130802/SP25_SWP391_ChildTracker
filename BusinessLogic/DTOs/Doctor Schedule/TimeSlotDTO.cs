@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 
 namespace BusinessLogic.DTOs.Doctor_Schedule
 {
-    internal class TimeSlotDTO
+    public class TimeSlotDTO
     {
+        public TimeOnly SlotTime { get; set; }
+        public bool IsAvailable { get; set; }
     }
 }

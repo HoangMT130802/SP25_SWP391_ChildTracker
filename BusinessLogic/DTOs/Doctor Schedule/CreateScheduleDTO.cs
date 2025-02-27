@@ -1,17 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace BusinessLogic.DTOs.Doctor_Schedule
 {
-    public class CreateScheduleDTO
+    public class CreateDoctorScheduleDTO
     {
+        [Required]
         public int DoctorId { get; set; }
+
+        [Required]
         public DateOnly WorkDate { get; set; }
+
+        [Required]
         public TimeOnly StartTime { get; set; }
+
+        [Required]
         public TimeOnly EndTime { get; set; }
-        public int SlotDuration { get; set; } // Thời lượng mỗi slot (phút)
+
+        [Required]
+        [Range(15, 120)]
+        public int SlotDuration { get; set; }
     }
 }

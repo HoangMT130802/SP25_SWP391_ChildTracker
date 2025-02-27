@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BusinessLogic.DTOs.Appointment
 {
-   public class AppointmentDTO
+    public class AppointmentDTO
     {
         public int AppointmentId { get; set; }
         public int ScheduleId { get; set; }
@@ -16,6 +16,7 @@ namespace BusinessLogic.DTOs.Appointment
         public string DoctorName { get; set; }
         public int ChildId { get; set; }
         public string ChildName { get; set; }
+        public DateOnly AppointmentDate { get; set; }
         public TimeOnly SlotTime { get; set; }
         public string Status { get; set; }
         public string MeetingLink { get; set; }

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
 using BusinessLogic.Services.Interfaces;
 using DataAccess.Models;
 using DataAccess.Repositories;
@@ -44,28 +40,96 @@ namespace BusinessLogic.Services.Implementations
         }
 
 
-        public async Task<object> GetUsersCreatedOnDateAsync(string? date)
+        public async Task<object> TotalUsersCreateByDateAsync(string? date)
         {
-            DateTime selectedDate;
-
-            // Kiểm tra và chuyển đổi ngày
-            if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out selectedDate))
+            try
             {
-                selectedDate = selectedDate.Date;
+                DateTime selectedDate;
+
+                // Kiểm tra và chuyển đổi ngày
+                if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out selectedDate))
+                {
+                    selectedDate = selectedDate.Date;
+                }
+                else
+                {
+                    selectedDate = DateTime.UtcNow.Date;
+                }
+
+                var users = await _userRepository.FindAsync(u => u.CreatedAt.Date == selectedDate);
+
+                return new
+                {
+                    date = selectedDate.ToString("yyyy-MM-dd"),
+                    totalCreatedUsers = users.Count()
+                };
             }
-            else
+            catch (FormatException)
             {
-                selectedDate = DateTime.UtcNow.Date;
+                return new { error = "Định dạng không hợp lệ. Vui lòng sử dụng 'yyyy-MM-dd'." };
             }
-
-            var users = await _userRepository.FindAsync(u => u.CreatedAt.Date == selectedDate);
-
-            return new
-            {
-                date = selectedDate.ToString("yyyy-MM-dd"),
-                totalCreatedUsers = users.Count(),
-                users = users
-            };
         }
+
+        public async Task<object> TotalUsersCreateByMonthAsync(string? monthYear)
+        {
+            try
+            {
+                DateTime selectedMonth;
+                // Nếu không có input, lấy tháng hiện tại
+                if (string.IsNullOrEmpty(monthYear))
+                {
+                    selectedMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+                }
+                else
+                {
+                    selectedMonth = DateTime.ParseExact(monthYear, "yyyy-MM", null);
+                }
+
+                // Lấy danh sách user đăng ký trong tháng
+                var users = await _userRepository.FindAsync(u =>
+                    u.CreatedAt.Year == selectedMonth.Year &&
+                    u.CreatedAt.Month == selectedMonth.Month);
+
+                return new
+                {
+                    month = selectedMonth.ToString("yyyy-MM"),
+                    totalCreatedUsers = users.Count()
+                };
+            }
+            catch (FormatException)
+            {
+                return new { error = "Định dạng không hợp lệ. Vui lòng sử dụng 'yyyy-MM'." };
+            }
+        }
+
+        public async Task<object> GetUserStatusStatisticsAsync()
+        {
+            try
+            {
+                var allUsers = await _userRepository.GetAllAsync();
+
+                var activeCount = allUsers.Count(u => u.Status == true);
+                var blockedCount = allUsers.Count(u => u.Status == false);
+
+                return new
+                {
+                    totalUsers = allUsers.Count(),
+                    statusBreakdown = new[]
+                    {
+                new { Status = "Users Active", Total  = activeCount },
+                new { Status = "Users Blocked", Total  = blockedCount }
+            }
+                };
+            }
+            catch (Exception ex)
+            {
+                return new
+                {
+                    error = "Lỗi xử lý dữ liệu",
+                    details = ex.Message
+                };
+            }
+        }
+
     }
 }

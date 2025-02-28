@@ -10,6 +10,10 @@ namespace BusinessLogic.Services.Interfaces
     {
         Task<Dictionary<string, int>> GetUserStatisticsRoleAsync();
 
-        Task<object> GetUsersCreatedOnDateAsync(string? date);
+        Task<object> TotalUsersCreateByDateAsync(string? date);
+
+        Task<object> TotalUsersCreateByMonthAsync(string? monthYear);
+
+        Task<object> GetUserStatusStatisticsAsync();
     }
 }

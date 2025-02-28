@@ -1,5 +1,4 @@
-﻿using BusinessLogic.DTOs.Children;
-using BusinessLogic.Services.Implementations;
+﻿
 using BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -31,9 +30,23 @@ namespace WebAPI.Controllers
         }
 
         [HttpGet("total-users-created-day")]
-        public async Task<IActionResult> GetUsersByDate([FromQuery] string? date)
+        public async Task<IActionResult> TotalUsersCreateByDate([FromQuery] string? date)
         {
-            var result = await _adminService.GetUsersCreatedOnDateAsync(date);
+            var result = await _adminService.TotalUsersCreateByDateAsync(date);
+            return Ok(result);
+        }
+
+        [HttpGet("total-users-created-month")]
+        public async Task<IActionResult> TotalUsersCreateByMonth([FromQuery] string? date)
+        {
+            var result = await _adminService.TotalUsersCreateByMonthAsync(date);
+            return Ok(result);
+        }
+
+        [HttpGet("total-active-and-Blocked")]
+        public async Task<IActionResult> GetUserStatusStatisticsAsync()
+        {
+            var result = await _adminService.GetUserStatusStatisticsAsync();
             return Ok(result);
         }
     }

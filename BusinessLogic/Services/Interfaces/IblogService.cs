@@ -13,6 +13,7 @@ namespace BusinessLogic.Services.Interfaces
         Task<IEnumerable<BlogDTO>> GetAllBlogAsync();
         Task<PaginatedList<BlogDTO>> GetAllBlogPaginatedAsync(int pageIndex, int pageSize);
         Task<BlogDTO> GetblogByIdAsync(int BlogId);
+        Task<List<BlogDTO>> SearchBlogByKeyword(string keyword);
         Task<BlogDTO> CreateBlogAsync(int userId, CreateBlogDTO createBlog);
         Task<BlogDTO> UpdateBlogAsync(int blogId, UpdateBlogDTO updateBlog);
         Task<bool> DeleteBlogAsync(int blogId);

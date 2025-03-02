@@ -74,6 +74,23 @@ namespace API.Controllers
         }
 
 
+        [HttpGet("searchblogkeyword")]
+        public async Task<IActionResult> SearchBlogskeyword([FromQuery] string keyword)
+        {
+            try
+            {
+                var result = await _blogService.SearchBlogByKeyword(keyword);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+
+
+
         [HttpPost]
         //[Authorize(Roles = "Admin,Doctor")]
         public async Task<ActionResult> CreateBlogAsync(int userId, [FromBody] CreateBlogDTO createBlog)

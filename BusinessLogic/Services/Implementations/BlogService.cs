@@ -117,6 +117,42 @@ namespace BusinessLogic.Services.Implementations
             }
         }
 
+
+        // Blog theo từ khóa
+        public async Task<List<BlogDTO>> SearchBlogByKeyword(string keyword)
+        {
+            try
+            {
+                keyword = keyword.ToLower();
+                // Tìm bài viết chứa từ khóa trong Title hoặc Content
+                var blogkeyword = await _blogrepository.FindAsync(b =>
+                    b.Title.ToLower().Contains(keyword) || b.Content.ToLower().Contains(keyword));
+
+                if (!blogkeyword.Any())
+                {
+                    throw new Exception($"Không có bài viết nào chứa từ khóa '{keyword}'.");
+                }
+                return blogkeyword.Select(b => new BlogDTO
+                {
+                    BlogId = b.BlogId,
+                    AuthorId = b.AuthorId,
+                    Title = b.Title,
+                    Content = b.Content,
+                    ImageUrl = b.ImageUrl,
+                    Views = b.Views,
+                    Likes = b.Likes,
+                    CreatedAt = b.CreatedAt
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi trong quá trình tìm kiếm: {ex.Message}");
+            }
+        }
+
+
+
+
         // tạo blog
         public async Task<BlogDTO> CreateBlogAsync(int userId, CreateBlogDTO createBlog)
         {

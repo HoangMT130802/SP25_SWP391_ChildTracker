@@ -14,6 +14,9 @@ namespace BusinessLogic.Services.Interfaces
         Task<PaginatedList<BlogDTO>> GetAllBlogPaginatedAsync(int pageIndex, int pageSize);
         Task<BlogDTO> GetblogByIdAsync(int BlogId);
         Task<List<BlogDTO>> SearchBlogByKeyword(string keyword);
+        Task<bool> LikeBlog(int blogId);
+        Task<bool> ApproveBlogAsync(int blogId);
+        Task<bool> RejectBlogAsync(int blogId);
         Task<BlogDTO> CreateBlogAsync(int userId, CreateBlogDTO createBlog);
         Task<BlogDTO> UpdateBlogAsync(int blogId, UpdateBlogDTO updateBlog);
         Task<bool> DeleteBlogAsync(int blogId);

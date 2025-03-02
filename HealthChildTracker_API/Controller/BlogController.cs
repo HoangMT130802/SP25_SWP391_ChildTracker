@@ -89,6 +89,46 @@ namespace API.Controllers
         }
 
 
+        [HttpPost("like/{blogId}")]
+        public async Task<IActionResult> LikeBlog(int blogId)
+        {
+            try
+            {
+                var result = await _blogService.LikeBlog(blogId);
+                if (result)
+                {
+                    return Ok("Đã like bài viết!");
+                }
+                else
+                {
+                    return BadRequest("Không thể like bài viết.");
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+
+        [HttpPut("approve/{blogId}")]
+        //[Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ApproveBlog(int blogId)
+        {
+            var result = await _blogService.ApproveBlogAsync(blogId);
+            if (result) return Ok($"Bài viết {blogId} đã được duyệt.");
+            return BadRequest($"Lỗi duyệt bài viết {blogId}.");
+        }
+
+        [HttpPut("reject/{blogId}")]
+        //[Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RejectBlog(int blogId)
+        {
+            var result = await _blogService.RejectBlogAsync(blogId);
+            if (result) return Ok($"Bài viết {blogId} đã từ chối.");
+            return BadRequest($"Lỗi từ chối bài viết {blogId}.");
+        }
+
 
 
         [HttpPost]

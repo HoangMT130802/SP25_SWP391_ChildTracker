@@ -150,6 +150,67 @@ namespace BusinessLogic.Services.Implementations
             }
         }
 
+        // tăng like
+        public async Task<bool> LikeBlog(int blogId)
+        {
+            try
+            {
+                var blog = await _blogrepository.GetByIdAsync(blogId);
+                if (blog == null)
+                {
+                    throw new Exception($"Không tìm thấy bài viết {blogId}");
+                }
+
+                blog.Likes += 1; // Tăng lượt like
+                _blogrepository.Update(blog);
+                await _blogrepository.SaveAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi nhấn like: {ex.Message}");
+            }
+        }
+
+        // Kiểm duyệt nội dung 
+        public async Task<bool> ApproveBlogAsync(int blogId)
+        {
+            try
+            {
+                var blog = await _blogrepository.GetByIdAsync(blogId);
+                if (blog.Status == "True")
+                {
+                    throw new Exception($"Bài viết {blogId} đã được duyệt trước đó.");
+                }
+
+                blog.Status = "True";
+                _blogrepository.Update(blog);
+                await _blogrepository.SaveAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi duyệt bài viết {blogId}: {ex.Message}");
+
+            }
+        }
+        public async Task<bool> RejectBlogAsync(int blogId)
+        {
+            try
+            {
+                var blog = await _blogrepository.GetByIdAsync(blogId);
+                blog.Status = "False";
+                _blogrepository.Update(blog);
+                await _blogrepository.SaveAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi khi từ chối bài viết {blogId}: {ex.Message}");
+                return false;
+            }
+        }
 
 
 

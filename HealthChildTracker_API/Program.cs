@@ -23,6 +23,7 @@ builder.Services.AddScoped<IGrowthRecordService, GrowthRecordService>();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IDoctorScheduleService, DoctorScheduleService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<IGrowthAssessmentService, GrowthAssessmentService>();
 // Đăng ký automapper
 builder.Services.AddAutoMapper(typeof(MapperProfile));
 // cấu hình cors

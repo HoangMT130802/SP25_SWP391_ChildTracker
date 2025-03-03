@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 
 namespace BusinessLogic.DTOs.User
 {
-    internal class UserDTO
+
+    public class UserDTO : BaseUserDTO
     {
+        // Các thuộc tính đặc biệt cho User thông thường (nếu có)
     }
 }

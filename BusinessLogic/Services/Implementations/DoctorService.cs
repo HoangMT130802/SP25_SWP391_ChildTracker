@@ -6,8 +6,6 @@ using DataAccess.UnitOfWork;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace BusinessLogic.Services.Implementations
@@ -30,7 +28,6 @@ namespace BusinessLogic.Services.Implementations
             try
             {
                 var userRepository = _unitOfWork.GetRepository<User>();
-                
                 var doctors = await userRepository.FindAsync(
                     u => u.Role == "Doctor",
                     includeProperties: "DoctorProfiles");
@@ -38,7 +35,7 @@ namespace BusinessLogic.Services.Implementations
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting all doctors");
+                _logger.LogError(ex, "Lỗi khi lấy danh sách bác sĩ");
                 throw;
             }
         }
@@ -48,49 +45,47 @@ namespace BusinessLogic.Services.Implementations
             try
             {
                 var userRepository = _unitOfWork.GetRepository<User>();
-               
                 var doctor = await userRepository.GetAsync(
                     u => u.UserId == doctorId && u.Role == "Doctor",
                     includeProperties: "DoctorProfiles");
 
                 if (doctor == null)
                 {
-                    throw new KeyNotFoundException($"Doctor with ID {doctorId} not found");
+                    throw new KeyNotFoundException($"Không tìm thấy bác sĩ với ID {doctorId}");
                 }
 
                 return _mapper.Map<DoctorDTO>(doctor);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting doctor {doctorId}");
+                _logger.LogError(ex, $"Lỗi khi lấy thông tin bác sĩ {doctorId}");
                 throw;
             }
         }
 
         public async Task<DoctorDTO> CreateDoctorAsync(CreateDoctorDTO doctorDTO)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
-
                 var userRepository = _unitOfWork.GetRepository<User>();
-                /*var existingUser = await userRepository.GetAsync(u =>
-                    u.Username == doctorDTO.Username || u.Email == doctorDTO.Email);
-
+                
+                // Kiểm tra email đã tồn tại
+                var existingUser = await userRepository.GetAsync(u => u.Email == doctorDTO.Email);
                 if (existingUser != null)
                 {
-                    throw new InvalidOperationException("Username or email already exists");
-                }*/
+                    throw new InvalidOperationException("Email đã tồn tại trong hệ thống");
+                }
 
-
+                // Tạo user mới
                 var user = new User
                 {
-                    Username = doctorDTO.Username,
-                    Password = BCrypt.Net.BCrypt.HashPassword(doctorDTO.Password),
                     Email = doctorDTO.Email,
-                    FullName = doctorDTO.FullName,
-                    Phone = doctorDTO.Phone,
+                    Password = BCrypt.Net.BCrypt.HashPassword(doctorDTO.Password),
+                    FullName = $"{doctorDTO.FirstName} {doctorDTO.LastName}",
+                    Phone = doctorDTO.PhoneNumber,
                     Address = doctorDTO.Address,
-                    Role = "Doctor", 
+                    Role = "Doctor",
                     Status = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -106,9 +101,9 @@ namespace BusinessLogic.Services.Implementations
                     UserId = user.UserId,
                     Specialization = doctorDTO.Specialization,
                     Qualification = doctorDTO.Qualification,
-                    Experience = doctorDTO.Experience,
+                    Biography = doctorDTO.Description,
                     LicenseNumber = doctorDTO.LicenseNumber,
-                    Biography = doctorDTO.Biography,
+                    Experience = 0, // Chuyển đổi từ string sang int nếu cần
                     AverageRating = 0,
                     TotalRatings = 0,
                     IsVerified = true
@@ -117,63 +112,43 @@ namespace BusinessLogic.Services.Implementations
                 await profileRepository.AddAsync(profile);
                 await _unitOfWork.SaveChangesAsync();
 
-                // Tạo DoctorDTO thủ công thay vì sử dụng AutoMapper
-                var result = new DoctorDTO
-                {
-                    UserId = user.UserId,
-                    Username = user.Username,
-                    Email = user.Email,
-                    FullName = user.FullName,
-                    Phone = user.Phone,
-                    Address = user.Address,
-                    Role = user.Role,
-                    Status = user.Status,
-                    CreatedAt = user.CreatedAt,
-                    UpdatedAt = user.UpdatedAt,
-                    Specialization = profile.Specialization,
-                    Qualification = profile.Qualification,
-                    Experience = profile.Experience,
-                    LicenseNumber = profile.LicenseNumber,
-                    Biography = profile.Biography,
-                    AverageRating = profile.AverageRating,
-                    TotalRatings = profile.TotalRatings,
-                    IsVerified = profile.IsVerified
-                };
+                await transaction.CommitAsync();
 
-                return result;
+                // Lấy thông tin doctor vừa tạo
+                var createdDoctor = await GetDoctorByIdAsync(user.UserId);
+                return createdDoctor;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating doctor: {Message}", ex.Message);
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Lỗi khi tạo bác sĩ mới");
                 throw;
             }
         }
+
         public async Task<DoctorDTO> UpdateDoctorAsync(int doctorId, UpdateDoctorDTO doctorDTO)
         {
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                
                 var userRepository = _unitOfWork.GetRepository<User>();
                 var doctor = await userRepository.GetAsync(u => u.UserId == doctorId && u.Role == "Doctor");
 
                 if (doctor == null)
                 {
-                    throw new KeyNotFoundException($"Doctor with ID {doctorId} not found");
+                    throw new KeyNotFoundException($"Không tìm thấy bác sĩ với ID {doctorId}");
                 }
 
-                
-                doctor.Email = doctorDTO.Email;
-                doctor.FullName = doctorDTO.FullName;
-                doctor.Phone = doctorDTO.Phone;
+                // Cập nhật thông tin user
+                doctor.FullName = $"{doctorDTO.FirstName} {doctorDTO.LastName}";
+                doctor.Phone = doctorDTO.PhoneNumber;
                 doctor.Address = doctorDTO.Address;
-                doctor.Status = doctorDTO.Status;
                 doctor.UpdatedAt = DateTime.UtcNow;
 
                 userRepository.Update(doctor);
                 await _unitOfWork.SaveChangesAsync();
 
-                
+                // Cập nhật doctor profile
                 var profileRepository = _unitOfWork.GetRepository<DoctorProfile>();
                 var profile = await profileRepository.GetAsync(p => p.UserId == doctorId);
 
@@ -181,10 +156,10 @@ namespace BusinessLogic.Services.Implementations
                 {
                     profile.Specialization = doctorDTO.Specialization;
                     profile.Qualification = doctorDTO.Qualification;
-                    profile.Experience = doctorDTO.Experience;
+                    profile.Biography = doctorDTO.Description;
                     profile.LicenseNumber = doctorDTO.LicenseNumber;
-                    profile.Biography = doctorDTO.Biography;
-                    profile.IsVerified = doctorDTO.IsVerified;
+                    profile.Experience = 0; // Chuyển đổi từ string sang int nếu cần
+                    profile.IsVerified = true;
 
                     profileRepository.Update(profile);
                     await _unitOfWork.SaveChangesAsync();
@@ -192,14 +167,13 @@ namespace BusinessLogic.Services.Implementations
 
                 await transaction.CommitAsync();
 
-               
-                var updatedDoctor = await userRepository.GetAsync(u => u.UserId == doctorId, "DoctorProfiles");
-                return _mapper.Map<DoctorDTO>(updatedDoctor);
+                // Lấy thông tin doctor sau khi cập nhật
+                return await GetDoctorByIdAsync(doctorId);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, $"Error updating doctor {doctorId}");
+                _logger.LogError(ex, $"Lỗi khi cập nhật thông tin bác sĩ {doctorId}");
                 throw;
             }
         }
@@ -213,9 +187,8 @@ namespace BusinessLogic.Services.Implementations
 
                 if (doctor == null)
                 {
-                    throw new KeyNotFoundException($"Doctor with ID {doctorId} not found");
+                    throw new KeyNotFoundException($"Không tìm thấy bác sĩ với ID {doctorId}");
                 }
-
 
                 doctor.Status = false;
                 doctor.UpdatedAt = DateTime.UtcNow;
@@ -227,7 +200,7 @@ namespace BusinessLogic.Services.Implementations
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error deleting doctor {doctorId}");
+                _logger.LogError(ex, $"Lỗi khi xóa bác sĩ {doctorId}");
                 throw;
             }
         }

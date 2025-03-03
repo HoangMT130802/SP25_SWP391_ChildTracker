@@ -77,5 +77,8 @@ public class MapperProfile : Profile
                  src.DoctorProfiles != null && src.DoctorProfiles.Any()
                      ? src.DoctorProfiles.FirstOrDefault().IsVerified
                      : false));
+        //Map growth record để sử dụng trong assessment controller
+        CreateMap<GrowthRecordDTO, GrowthRecord>();
+        CreateMap<GrowthRecord, GrowthRecordDTO>();
     }
 }

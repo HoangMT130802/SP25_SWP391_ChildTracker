@@ -1,5 +1,7 @@
-﻿using BusinessLogic.DTOs.GrowthRecord;
+﻿using BusinessLogic.DTOs.GrowthAssessment;
+using BusinessLogic.DTOs.GrowthRecord;
 using BusinessLogic.Services.Interfaces;
+using DataAccess.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,20 +24,12 @@ namespace HealthChildTracker_API.Controllers
             _growthAssessmentService = growthAssessmentService;
             _logger = logger;
         }
-
-        [HttpPost("assess/{childId}")]
-        public async Task<ActionResult<GrowthAssessmentDTO>> AssessGrowth(
-            int childId,
-            [FromBody] CreateGrowthRecordDTO recordDTO)
+        [HttpPost("assess")]
+        public async Task<ActionResult<GrowthAssessmentDTO>> AssessGrowth([FromBody] GrowthRecord record)
         {
             try
             {
-                // Lưu bản ghi tăng trưởng
-                var savedRecord = await _growthRecordService.CreateGrowthRecordAsync(recordDTO);
-
-                // Đánh giá tăng trưởng
-                var assessment = await _growthAssessmentService.AssessGrowthAsync(childId, savedRecord);
-
+                var assessment = await _growthAssessmentService.AssessGrowthAsync(record);
                 return Ok(assessment);
             }
             catch (KeyNotFoundException ex)

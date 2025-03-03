@@ -13,4 +13,5 @@ namespace BusinessLogic.DTOs.GrowthAssessment
         public string BMIStatus { get; set; }
         public string HeadCircumferenceStatus { get; set; }
     }
+
 }

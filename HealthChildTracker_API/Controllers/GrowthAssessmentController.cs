@@ -34,13 +34,12 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                // 1. Tạo bản ghi mới
+               
                 var recordResult = await _growthRecordService.CreateGrowthRecordAsync(recordDTO);
 
-                // 2. Chuyển đổi DTO sang Entity để đánh giá
+                
                 var recordEntity = _mapper.Map<GrowthRecord>(recordResult);
 
-                // 3. Đánh giá
                 var assessment = await _growthAssessmentService.AssessGrowthAsync(recordEntity);
 
                 return Ok(new
@@ -68,7 +67,7 @@ namespace HealthChildTracker_API.Controllers
                 if (latestRecord == null)
                     return NotFound($"Không tìm thấy bản ghi tăng trưởng cho trẻ {childId}");
 
-                // Chuyển đổi DTO sang Entity
+               
                 var recordEntity = _mapper.Map<GrowthRecord>(latestRecord);
                 var assessment = await _growthAssessmentService.AssessGrowthAsync(recordEntity);
 

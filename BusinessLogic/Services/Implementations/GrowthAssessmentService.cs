@@ -62,12 +62,12 @@ namespace BusinessLogic.Services.Implementations
             if (record == null)
                 throw new ArgumentNullException(nameof(record));
 
-            // Kiểm tra các giá trị đo lường
+           
             if (record.Height <= 0 || record.Weight <= 0)
                 throw new ArgumentException("Chiều cao và cân nặng phải lớn hơn 0");
             try
             {
-                // Lấy thông tin trẻ
+                
                 var childRepo = _unitOfWork.GetRepository<Child>();
                 var child = await childRepo.GetAsync(c => c.ChildId == record.ChildId);
 
@@ -77,7 +77,7 @@ namespace BusinessLogic.Services.Implementations
                 // Tính tuổi chính xác tại thời điểm đo
                 decimal exactAgeInMonths = CalculateExactAgeInMonths(child.BirthDate, record.CreatedAt);
 
-                // Lấy và nội suy các chỉ số chuẩn
+                
                 var standards = await GetInterpolatedStandards(
                     child.Gender,
                     exactAgeInMonths
@@ -370,13 +370,13 @@ namespace BusinessLogic.Services.Implementations
             // Đánh giá chiều cao
             if (assessment.ZScores.Height < -3)
             {
-                recommendations.Add("⚠️ Trẻ đang bị thấp còi nghiêm trọng (độ III):");
+                recommendations.Add(" Trẻ đang bị thấp còi nghiêm trọng (độ III):");
                 recommendations.Add("- Cần đưa trẻ đi khám bác sĩ chuyên khoa nhi gấp");
                 recommendations.Add("- Cần kiểm tra các vấn đề về nội tiết và dinh dưỡng");
             }
             else if (assessment.ZScores.Height < -2)
             {
-                recommendations.Add("⚠️ Trẻ đang bị thấp còi (độ II):");
+                recommendations.Add(" Trẻ đang bị thấp còi (độ II):");
                 recommendations.Add("- Cần bổ sung vitamin D và canxi");
                 recommendations.Add("- Đảm bảo chế độ ăn đủ protein (thịt, cá, trứng, sữa)");
                 recommendations.Add("- Tăng cường vận động ngoài trời");
@@ -385,14 +385,14 @@ namespace BusinessLogic.Services.Implementations
             // Đánh giá cân nặng và BMI
             if (assessment.ZScores.BMI > 3)
             {
-                recommendations.Add("⚠️ Trẻ đang bị béo phì độ II:");
+                recommendations.Add(" Trẻ đang bị béo phì độ II:");
                 recommendations.Add("- Cần tham vấn bác sĩ về chế độ ăn phù hợp");
                 recommendations.Add("- Giảm thức ăn nhiều đường và chất béo");
                 recommendations.Add("- Tăng cường vận động thể chất mỗi ngày");
             }
             else if (assessment.ZScores.BMI > 2)
             {
-                recommendations.Add("⚠️ Trẻ đang bị béo phì độ I:");
+                recommendations.Add(" Trẻ đang bị béo phì độ I:");
                 recommendations.Add("- Điều chỉnh chế độ ăn uống hợp lý");
                 recommendations.Add("- Tăng cường hoạt động thể chất");
             }
@@ -402,7 +402,7 @@ namespace BusinessLogic.Services.Implementations
             {
                 if (assessment.GrowthTrend.HeightVelocity < CONCERNING_HEIGHT_VELOCITY)
                 {
-                    recommendations.Add("📊 Tốc độ tăng chiều cao đang chậm:");
+                    recommendations.Add(" Tốc độ tăng chiều cao đang chậm:");
                     recommendations.Add("- Cần theo dõi sát sao hơn");
                     recommendations.Add("- Đảm bảo trẻ ngủ đủ giấc");
                 }
@@ -410,7 +410,7 @@ namespace BusinessLogic.Services.Implementations
 
             if (recommendations.Count == 0)
             {
-                recommendations.Add("✅ Trẻ đang phát triển bình thường.");
+                recommendations.Add(" Trẻ đang phát triển bình thường.");
                 recommendations.Add("- Tiếp tục duy trì chế độ dinh dưỡng và vận động hiện tại");
             }
 

@@ -39,24 +39,7 @@ namespace BusinessLogic.Services.Implementations
             _mapper = mapper;
             _logger = logger;
         }
-    /*    private decimal CalculateExactAgeInMonths(DateTime birthDate, DateTime measurementDate)
-        {
-            var timeSpan = measurementDate - birthDate;
-            return (decimal)timeSpan.TotalDays / DAYS_PER_MONTH;
-        }
-
-        private decimal InterpolateValue(decimal start, decimal end, decimal fraction)
-        {
-            return start + (end - start) * fraction;
-        }
-
-        private bool IsGrowthConcerning(GrowthTrendDTO trend)
-        {
-            if (trend.HeightVelocity < CONCERNING_HEIGHT_VELOCITY) return true;
-            if (trend.WeightVelocity < CONCERNING_WEIGHT_VELOCITY) return true;
-            if (trend.WeightVelocity > 1M && trend.BMIVelocity > CONCERNING_BMI_VELOCITY) return true;
-            return false;
-        }*/
+  
         public async Task<GrowthAssessmentDTO> AssessGrowthAsync(GrowthRecord record)
         {
             if (record == null)
@@ -303,20 +286,7 @@ namespace BusinessLogic.Services.Implementations
 
             return records.OrderBy(r => r.CreatedAt).ToList();
         }
-        /// <summary>
-        /// fuck
-        /// dn
-        /// sadasdas
-        /// sadasdasdnasidas
-        /// sadasndias
-        /// đânsndias
-        /// dsandiasndias
-        /// dánidasnidas
-        /// dnasidasidasn
-        /// s
-        /// </summary>
-        /// <param name="history"></param>
-        /// <returns></returns>
+      
         private GrowthTrendDTO AnalyzeGrowthTrend(List<GrowthRecord> history)
         {
             if (!history.Any())

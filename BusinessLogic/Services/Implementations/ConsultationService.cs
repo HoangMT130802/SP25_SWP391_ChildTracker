@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace BusinessLogic.Services.Implementations
 {
-   /* public class ConsultationService : IConsultationService
+    public class ConsultationService : IConsultationService
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
@@ -198,5 +198,135 @@ namespace BusinessLogic.Services.Implementations
 
             return workload;
         }
-    }*/
+        public async Task<ConsultationRequestDTO> GetRequestByIdAsync(int requestId)
+        {
+            try
+            {
+                var repo = _unitOfWork.GetRepository<ConsultationRequest>();
+                var request = await repo.GetAsync(
+                    r => r.RequestId == requestId,
+                    includeProperties: "User,Child,ConsultationResponses,ConsultationResponses.Doctor"
+                );
+
+                if (request == null)
+                    throw new KeyNotFoundException($"Không tìm thấy yêu cầu tư vấn ID {requestId}");
+
+                return _mapper.Map<ConsultationRequestDTO>(request);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lấy yêu cầu tư vấn {requestId}");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<ConsultationRequestDTO>> GetUserRequestsAsync(int userId)
+        {
+            try
+            {
+                var repo = _unitOfWork.GetRepository<ConsultationRequest>();
+                var requests = await repo.FindAsync(
+                    r => r.UserId == userId,
+                    includeProperties: "User,Child,ConsultationResponses,ConsultationResponses.Doctor"
+                );
+
+                return _mapper.Map<IEnumerable<ConsultationRequestDTO>>(requests);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lấy danh sách yêu cầu tư vấn của user {userId}");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<ConsultationRequestDTO>> GetDoctorRequestsAsync(int doctorId)
+        {
+            try
+            {
+                var repo = _unitOfWork.GetRepository<ConsultationRequest>();
+                var requests = await repo.FindAsync(
+                    r => r.ConsultationResponses.Any(cr => cr.DoctorId == doctorId),
+                    includeProperties: "User,Child,ConsultationResponses,ConsultationResponses.Doctor"
+                );
+
+                return _mapper.Map<IEnumerable<ConsultationRequestDTO>>(requests);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lấy danh sách yêu cầu tư vấn của bác sĩ {doctorId}");
+                throw;
+            }
+        }
+
+        public async Task<ConsultationResponseDTO> UpdateResponseAsync(int responseId, string newResponse)
+        {
+            try
+            {
+                var repo = _unitOfWork.GetRepository<ConsultationResponse>();
+                var response = await repo.GetAsync(r => r.ResponseId == responseId);
+
+                if (response == null)
+                    throw new KeyNotFoundException($"Không tìm thấy phản hồi ID {responseId}");
+
+                response.Response = newResponse;
+                response.UpdatedAt = DateTime.UtcNow;
+
+                repo.Update(response);
+                await _unitOfWork.SaveChangesAsync();
+
+                return _mapper.Map<ConsultationResponseDTO>(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi cập nhật phản hồi {responseId}");
+                throw;
+            }
+        }
+
+        public async Task<ConsultationRequestDTO> AssignDoctorAsync(int requestId, int doctorId)
+        {
+            try
+            {
+                // Kiểm tra bác sĩ có tồn tại
+                var doctorRepo = _unitOfWork.GetRepository<User>();
+                var doctor = await doctorRepo.GetAsync(d => d.UserId == doctorId && d.Role == "Doctor");
+
+                if (doctor == null)
+                    throw new InvalidOperationException($"Không tìm thấy bác sĩ ID {doctorId}");
+
+                // Kiểm tra và cập nhật request
+                var requestRepo = _unitOfWork.GetRepository<ConsultationRequest>();
+                var request = await requestRepo.GetAsync(r => r.RequestId == requestId);
+
+                if (request == null)
+                    throw new KeyNotFoundException($"Không tìm thấy yêu cầu tư vấn ID {requestId}");
+
+                if (request.Status != "Pending")
+                    throw new InvalidOperationException("Yêu cầu tư vấn không ở trạng thái chờ xử lý");
+
+                request.Status = "Assigned";
+                requestRepo.Update(request);
+
+                // Tạo response thông báo phân công
+                var responseRepo = _unitOfWork.GetRepository<ConsultationResponse>();
+                await responseRepo.AddAsync(new ConsultationResponse
+                {
+                    RequestId = requestId,
+                    DoctorId = doctorId,
+                    Response = "Bác sĩ đã được phân công xử lý yêu cầu này",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
+
+                await _unitOfWork.SaveChangesAsync();
+
+                return await GetRequestByIdAsync(requestId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi phân công bác sĩ cho yêu cầu {requestId}");
+                throw;
+            }
+        }
+    }
 }

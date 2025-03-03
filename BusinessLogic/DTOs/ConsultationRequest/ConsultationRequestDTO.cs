@@ -19,7 +19,7 @@ namespace BusinessLogic.DTOs.ConsultationRequest
         public DateTime CreatedAt { get; set; }
         public DateTime? LastActivityAt { get; set; }
         public virtual ChildDTO Child { get; set; }
-        public virtual UserDTO User { get; set; }
+       /* public virtual UserDTO User { get; set; }*/
         public virtual List<ConsultationResponseDTO> Responses { get; set; }
     }
 }

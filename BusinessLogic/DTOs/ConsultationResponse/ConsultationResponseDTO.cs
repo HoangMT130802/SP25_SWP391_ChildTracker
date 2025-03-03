@@ -16,6 +16,6 @@ namespace BusinessLogic.DTOs.ConsultationResponse
         public string Attachments { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
-        public virtual UserDTO Doctor { get; set; }
+        /*public virtual UserDTO Doctor { get; set; }*/
     }
 }

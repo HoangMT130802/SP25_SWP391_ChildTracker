@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using BusinessLogic.DTOs.Authentication;
 using BusinessLogic.DTOs.Children;
+using BusinessLogic.DTOs.ConsultationRequest;
+using BusinessLogic.DTOs.ConsultationResponse;
 using BusinessLogic.DTOs.Doctor;
 using BusinessLogic.DTOs.GrowthRecord;
 using DataAccess.Entities;
@@ -80,5 +82,10 @@ public class MapperProfile : Profile
         //Map growth record để sử dụng trong assessment controller
         CreateMap<GrowthRecordDTO, GrowthRecord>();
         CreateMap<GrowthRecord, GrowthRecordDTO>();
+        //Consulation
+        CreateMap<ConsultationRequest, ConsultationRequestDTO>();
+        CreateMap<ConsultationResponse, ConsultationResponseDTO>();
+        CreateMap<CreateConsultationRequestDTO, ConsultationRequest>();
+        CreateMap<CreateConsultationResponseDTO, ConsultationResponse>();
     }
 }

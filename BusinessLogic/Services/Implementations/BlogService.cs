@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Azure;
+﻿using System.Reflection.Metadata;
 using BusinessLogic.DTOs.Blog;
-using BusinessLogic.DTOs.Children;
 using BusinessLogic.Services.Interfaces;
-using DataAccess.Models;
+using DataAccess.Entities;
 using DataAccess.Repositories;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
+
 using Microsoft.Extensions.Logging;
 
 namespace BusinessLogic.Services.Implementations
@@ -19,22 +12,23 @@ namespace BusinessLogic.Services.Implementations
     {
         private readonly IGenericRepository<Blog> _blogrepository;
         private readonly ILogger<BlogService> _logger;
-        public BlogService(IGenericRepository<Blog> blogrepository)
+
+        public BlogService(IGenericRepository<Blog> blogrepository, ILogger<BlogService> logger)
         {
             _blogrepository = blogrepository;
+            _logger = logger;
         }
 
-
-        // Lấy allBlog
-        public async Task<IEnumerable<BlogDTO>> GetAllBlogAsync()
+        // Lấy allBlog chờ duyệt
+        public async Task<IEnumerable<BlogDTO>> GetAllBlogPendingAsync()
         {
             try
             {
-                var blogs = await _blogrepository.GetAllAsync();
+                var blogs = await _blogrepository.FindAsync(b => b.Status == "Pending");
 
                 if (blogs == null || !blogs.Any())
                 {
-                    throw new Exception("Không có bài viết nào trong hệ thống.");
+                    throw new Exception("No Blog in system.");
                 }
                 return blogs.Select(blog => new BlogDTO
                 {
@@ -50,19 +44,49 @@ namespace BusinessLogic.Services.Implementations
             }
             catch (Exception ex)
             {
-                throw new Exception("Không thể lấy danh sách bài viết", ex);
+                throw new Exception("Unable to get list of blog", ex);
             }
         }
-        // lấy allblog có phân trang
+
+
+        // Lấy allBlog đã dc duyệt
+        public async Task<IEnumerable<BlogDTO>> GetAllBlogApprovedAsync()
+        {
+            try
+            {
+                var blogs = await _blogrepository.FindAsync(b => b.Status == "Approved");
+
+                if (blogs == null || !blogs.Any())
+                {
+                    throw new Exception("No Blog in system.");
+                }
+                return blogs.Select(blog => new BlogDTO
+                {
+                    BlogId = blog.BlogId,
+                    AuthorId = blog.AuthorId,
+                    Title = blog.Title,
+                    Content = blog.Content,
+                    ImageUrl = blog.ImageUrl,
+                    Views = blog.Views,
+                    Likes = blog.Likes,
+                    CreatedAt = blog.CreatedAt
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Unable to get list of blog", ex);
+            }
+        }
+        // lấy allblog có phân trang (đã dc duyệt)
         public async Task<PaginatedList<BlogDTO>> GetAllBlogPaginatedAsync(int pageIndex, int pageSize)
         {
             try
             {
-                var query = _blogrepository.GetAllQueryable();
+                var query = _blogrepository.GetAllQueryable().Where(b => b.Status == "Approved");
 
                 if (!query.Any())
                 {
-                    _logger.LogWarning("Không có bài viết nào trong hệ thống.");
+                    _logger.LogWarning("No Blog in system.");
                     return new PaginatedList<BlogDTO>(new List<BlogDTO>(), 0, pageIndex, pageSize);
                 }
                 // Chuyển Blog -> BlogDTO trước khi phân trang
@@ -83,7 +107,7 @@ namespace BusinessLogic.Services.Implementations
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi lấy danh sách bài viết có phân trang.");
+                _logger.LogError(ex, "Error when getting list of paginated blog.");
                 return new PaginatedList<BlogDTO>(new List<BlogDTO>(), 0, pageIndex, pageSize);
             }
         }
@@ -93,10 +117,10 @@ namespace BusinessLogic.Services.Implementations
         {
             try
             {
-                var blog = await _blogrepository.GetByIdAsync(blogId);
+                var blog = await _blogrepository.GetAsync(b => b.BlogId == blogId && b.Status == "Approved");
                 if (blog == null)
                 {
-                    throw new Exception($"Không có bài viết {blogId} trong hệ thống.");
+                    throw new Exception($"No Blog {blogId} in system.");
                 }
                 return new BlogDTO
                 {
@@ -112,7 +136,7 @@ namespace BusinessLogic.Services.Implementations
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Lỗi khi xử bài viết {blogId}");
+                _logger.LogError(ex, $"Error while processing blog {blogId}");
                 throw;
             }
         }
@@ -124,13 +148,14 @@ namespace BusinessLogic.Services.Implementations
             try
             {
                 keyword = keyword.ToLower();
-                // Tìm bài viết chứa từ khóa trong Title hoặc Content
+                // Chỉ tìm blog có Status là "Approved" và chứa từ khóa trong Title hoặc Content
                 var blogkeyword = await _blogrepository.FindAsync(b =>
-                    b.Title.ToLower().Contains(keyword) || b.Content.ToLower().Contains(keyword));
+                    b.Status == "Approved" &&
+                    (b.Title.ToLower().Contains(keyword) || b.Content.ToLower().Contains(keyword)));
 
                 if (!blogkeyword.Any())
                 {
-                    throw new Exception($"Không có bài viết nào chứa từ khóa '{keyword}'.");
+                    throw new Exception($"There are no posts containing the keyword '{keyword}'.");
                 }
                 return blogkeyword.Select(b => new BlogDTO
                 {
@@ -146,32 +171,10 @@ namespace BusinessLogic.Services.Implementations
             }
             catch (Exception ex)
             {
-                throw new Exception($"Lỗi trong quá trình tìm kiếm: {ex.Message}");
+                throw new Exception($"Error during search: {ex.Message}");
             }
         }
 
-        // tăng like
-        public async Task<bool> LikeBlog(int blogId)
-        {
-            try
-            {
-                var blog = await _blogrepository.GetByIdAsync(blogId);
-                if (blog == null)
-                {
-                    throw new Exception($"Không tìm thấy bài viết {blogId}");
-                }
-
-                blog.Likes += 1; // Tăng lượt like
-                _blogrepository.Update(blog);
-                await _blogrepository.SaveAsync();
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Lỗi khi nhấn like: {ex.Message}");
-            }
-        }
 
         // Kiểm duyệt nội dung 
         public async Task<bool> ApproveBlogAsync(int blogId)
@@ -179,19 +182,20 @@ namespace BusinessLogic.Services.Implementations
             try
             {
                 var blog = await _blogrepository.GetByIdAsync(blogId);
-                if (blog.Status == "True")
+                if (blog.Status == "Pending")
                 {
-                    throw new Exception($"Bài viết {blogId} đã được duyệt trước đó.");
+                    blog.Status = "Approved";
+                    _blogrepository.Update(blog);
+                    await _blogrepository.SaveAsync();
+                    return true;
                 }
 
-                blog.Status = "True";
-                _blogrepository.Update(blog);
-                await _blogrepository.SaveAsync();
-                return true;
+
+                throw new Exception($"Blog {blogId} previously approved.");
             }
             catch (Exception ex)
             {
-                throw new Exception($"Lỗi khi duyệt bài viết {blogId}: {ex.Message}");
+                throw new Exception($"Error while browsing article {blogId}: {ex.Message}");
 
             }
         }
@@ -200,14 +204,19 @@ namespace BusinessLogic.Services.Implementations
             try
             {
                 var blog = await _blogrepository.GetByIdAsync(blogId);
-                blog.Status = "False";
-                _blogrepository.Update(blog);
-                await _blogrepository.SaveAsync();
-                return true;
+                if (blog.Status == "Pending")
+                {
+                    blog.Status = "Rejected";
+                    _blogrepository.Update(blog);
+                    await _blogrepository.SaveAsync();
+                    return true;
+                }
+                throw new Exception($"Blog {blogId} previously rejected.");
+
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi khi từ chối bài viết {blogId}: {ex.Message}");
+                Console.WriteLine($"Error when rejecting article {blogId}: {ex.Message}");
                 return false;
             }
         }
@@ -219,22 +228,21 @@ namespace BusinessLogic.Services.Implementations
         {
             try
             {
-                //Lấy giá trị BlogId lớn nhất hiện tại
-                int maxBlogId = await _blogrepository.GetAllQueryable().MaxAsync(b => (int?)b.BlogId) ?? 0;
+
                 var blog = new Blog
                 {
-                    BlogId = maxBlogId + 1,  //Tự động tăng
+
                     AuthorId = userId,
                     Title = createBlog.Title,
                     Content = createBlog.Content,
                     ImageUrl = createBlog.ImageUrl,
                     Views = 0, // Mặc định ban đầu 
                     Likes = 0, // Mặc định ban đầu
-                    Status = "true",
+                    Status = "Pending",
                     CreatedAt = DateTime.UtcNow
                 };
+                await _blogrepository.InsertAsync(blog);
 
-                await _blogrepository.AddAsync(blog);
                 await _blogrepository.SaveAsync();
 
                 return new BlogDTO
@@ -249,10 +257,10 @@ namespace BusinessLogic.Services.Implementations
                     CreatedAt = blog.CreatedAt
                 };
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                
-                throw new Exception("Lỗi khi tạo bài viết");
+
+                throw new Exception($"Error When Creating Blog: {ex.Message}", ex);
             }
         }
 
@@ -264,12 +272,13 @@ namespace BusinessLogic.Services.Implementations
                 var blog = await _blogrepository.GetByIdAsync(blogId);
                 if (blog == null)
                 {
-                    throw new Exception($"Không tìm thấy bài viết {blogId}");
+                    throw new Exception($"No blog found {blogId}");
                 }
                 // Cập nhật blog
                 blog.Title = updateBlog.Title;
                 blog.Content = updateBlog.Content;
                 blog.ImageUrl = updateBlog.ImageUrl;
+                blog.Status = "Pending"; // Chuyển trạng thái về Pending để chờ duyệt
 
                 _blogrepository.Update(blog);
                 await _blogrepository.SaveAsync();
@@ -288,7 +297,7 @@ namespace BusinessLogic.Services.Implementations
             }
             catch
             {
-                throw new Exception("Lỗi khi update bài viết");
+                throw new Exception("Error when update");
             }
         }
 
@@ -301,7 +310,7 @@ namespace BusinessLogic.Services.Implementations
 
                 if (Blog == null)
                 {
-                    throw new Exception($"Không tìm thấy bài viết {blogId}");
+                    throw new Exception($"No blog found {blogId}");
                 }
 
                 _blogrepository.Delete(Blog);
@@ -310,7 +319,7 @@ namespace BusinessLogic.Services.Implementations
             }
             catch
             {
-                throw new Exception($"Lỗi khi xóa bài viết {blogId}");
+                throw new Exception($"Error detele blog {blogId}");
             }
 
         }

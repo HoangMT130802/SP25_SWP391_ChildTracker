@@ -1,9 +1,6 @@
 ﻿
-using System.Security.Claims;
 using BusinessLogic.DTOs.Blog;
-using BusinessLogic.DTOs.Doctor;
 using BusinessLogic.Services.Interfaces;
-using DataAccess.Models;
 using Microsoft.AspNetCore.Mvc;
 
 
@@ -20,13 +17,27 @@ namespace API.Controllers
             _blogService = blogService;
         }
 
-
-        [HttpGet]
-        public async Task<ActionResult> GetAllBlogs()
+        [HttpGet("AllBlogPending")]
+        public async Task<ActionResult> GetAllBlogPendingAsync()
         {
             try
             {
-                var blogs = await _blogService.GetAllBlogAsync();
+                var blogs = await _blogService.GetAllBlogPendingAsync();
+                return Ok(blogs);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+
+        [HttpGet("AllBlogApproved")]
+        public async Task<ActionResult> GetAllBlogApprovedAsync()
+        {
+            try
+            {
+                var blogs = await _blogService.GetAllBlogApprovedAsync();
                 return Ok(blogs);
             }
             catch (Exception ex)
@@ -89,28 +100,6 @@ namespace API.Controllers
         }
 
 
-        [HttpPost("like/{blogId}")]
-        public async Task<IActionResult> LikeBlog(int blogId)
-        {
-            try
-            {
-                var result = await _blogService.LikeBlog(blogId);
-                if (result)
-                {
-                    return Ok("Đã like bài viết!");
-                }
-                else
-                {
-                    return BadRequest("Không thể like bài viết.");
-                }
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-
         [HttpPut("approve/{blogId}")]
         //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> ApproveBlog(int blogId)
@@ -130,7 +119,6 @@ namespace API.Controllers
         }
 
 
-
         [HttpPost]
         //[Authorize(Roles = "Admin,Doctor")]
         public async Task<ActionResult> CreateBlogAsync(int userId, [FromBody] CreateBlogDTO createBlog)
@@ -141,12 +129,12 @@ namespace API.Controllers
             }
 
             // Kiểm tra xem user có quyền tạo blog không
-                //var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-                //if (userRole != "Admin" && userRole != "Doctor")
-                //{
-                    //return Forbid(); // 403 - Không có quyền
-                //}
-                // Tạo blog
+            //var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            //if (userRole != "Admin" && userRole != "Doctor")
+            //{
+            //return Forbid(); // 403 - Không có quyền
+            //}
+            // Tạo blog
             var createdBlog = await _blogService.CreateBlogAsync(userId, createBlog);
 
             return Ok(createdBlog);

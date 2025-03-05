@@ -17,12 +17,18 @@ namespace BusinessLogic.Services.Implementations
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<AppointmentService> _logger;
+        private readonly IDoctorScheduleService _scheduleService;
 
-        public AppointmentService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<AppointmentService> logger)
+        public AppointmentService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            ILogger<AppointmentService> logger,
+            IDoctorScheduleService scheduleService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
+            _scheduleService = scheduleService;
         }
 
         public async Task<IEnumerable<AppointmentDTO>> GetAllAppointmentsAsync()
@@ -182,45 +188,41 @@ namespace BusinessLogic.Services.Implementations
 
         public async Task<AppointmentDTO> CreateAppointmentAsync(CreateAppointmentDTO appointmentDTO)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                // Kiểm tra xem lịch bác sĩ có tồn tại không
                 var scheduleRepository = _unitOfWork.GetRepository<DoctorSchedule>();
                 var schedule = await scheduleRepository.GetAsync(s => s.ScheduleId == appointmentDTO.ScheduleId);
 
                 if (schedule == null)
                 {
-                    throw new KeyNotFoundException($"Schedule with ID {appointmentDTO.ScheduleId} not found");
+                    throw new KeyNotFoundException("Không tìm thấy lịch làm việc");
                 }
 
-                // Kiểm tra xem trẻ có tồn tại không
-                var childRepository = _unitOfWork.GetRepository<Child>();
-                var child = await childRepository.GetAsync(c => c.ChildId == appointmentDTO.ChildId);
-
-                if (child == null)
-                {
-                    throw new KeyNotFoundException($"Child with ID {appointmentDTO.ChildId} not found");
-                }
-
-                // Kiểm tra xem slot có sẵn không
+                // Kiểm tra xem user đã từng hủy lịch trong ngày này chưa
                 var appointmentRepository = _unitOfWork.GetRepository<Appointment>();
-                var existingAppointment = await appointmentRepository.GetAsync(
-                    a => a.ScheduleId == appointmentDTO.ScheduleId &&
-                         a.SlotTime == appointmentDTO.SlotTime &&
-                         a.Status != "Cancelled"
+                var cancelledToday = await appointmentRepository.FindAsync(
+                    a => a.UserId == appointmentDTO.UserId &&
+                         a.Schedule.WorkDate == schedule.WorkDate &&
+                         a.Status == "Cancelled"
                 );
 
-                if (existingAppointment != null)
+                if (cancelledToday.Any())
                 {
-                    throw new InvalidOperationException("This time slot is already booked");
+                    throw new InvalidOperationException("Bạn đã hủy lịch hẹn trong ngày này và không thể đặt lại");
                 }
 
-                // Kiểm tra xem slot có nằm trong khoảng thời gian làm việc của bác sĩ không
-                if (appointmentDTO.SlotTime < schedule.StartTime ||
-                    appointmentDTO.SlotTime.AddMinutes(schedule.SlotDuration) > schedule.EndTime)
+                // Kiểm tra slot có sẵn
+                var slots = await _scheduleService.CalculateAvailableSlotsAsync(appointmentDTO.ScheduleId);
+                var selectedSlot = slots.FirstOrDefault(s => s.SlotTime == appointmentDTO.SlotTime);
+
+                if (selectedSlot == null || !selectedSlot.IsAvailable)
                 {
-                    throw new ArgumentException("The selected time slot is outside the doctor's working hours");
+                    throw new InvalidOperationException("Slot này không khả dụng");
                 }
+
+                // Tạo link Google Meet
+                string meetingLink = await CreateGoogleMeetLinkAsync();
 
                 // Tạo cuộc hẹn mới
                 var appointment = new Appointment
@@ -231,24 +233,23 @@ namespace BusinessLogic.Services.Implementations
                     ChildId = appointmentDTO.ChildId,
                     SlotTime = appointmentDTO.SlotTime,
                     Status = "Pending",
-                    MeetingLink = "", // Sẽ được cập nhật sau khi bác sĩ xác nhận
+                    MeetingLink = meetingLink,
                     Description = appointmentDTO.Description,
-                    Note = "",
                     CreatedAt = DateTime.UtcNow
                 };
 
                 await appointmentRepository.AddAsync(appointment);
                 await _unitOfWork.SaveChangesAsync();
 
-                // Lấy cuộc hẹn đã tạo với thông tin đầy đủ
+                await transaction.CommitAsync();
+
+                // Lấy thông tin đầy đủ của cuộc hẹn
                 var createdAppointment = await appointmentRepository.GetAsync(
                     a => a.AppointmentId == appointment.AppointmentId,
                     includeProperties: "User,Doctor,Child,Schedule"
                 );
 
                 var result = _mapper.Map<AppointmentDTO>(createdAppointment);
-
-                // Thêm thông tin ngày từ lịch bác sĩ
                 if (createdAppointment.Schedule != null)
                 {
                     result.AppointmentDate = createdAppointment.Schedule.WorkDate;
@@ -258,7 +259,8 @@ namespace BusinessLogic.Services.Implementations
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating appointment");
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Lỗi khi tạo cuộc hẹn");
                 throw;
             }
         }
@@ -319,33 +321,45 @@ namespace BusinessLogic.Services.Implementations
 
         public async Task<bool> CancelAppointmentAsync(int appointmentId, int userId)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var appointmentRepository = _unitOfWork.GetRepository<Appointment>();
                 var appointment = await appointmentRepository.GetAsync(
-                    a => a.AppointmentId == appointmentId && (a.UserId == userId || a.DoctorId == userId)
+                    a => a.AppointmentId == appointmentId && 
+                         (a.UserId == userId || a.DoctorId == userId),
+                    includeProperties: "Schedule"
                 );
 
                 if (appointment == null)
                 {
-                    throw new KeyNotFoundException($"Appointment with ID {appointmentId} not found or you don't have permission to cancel it");
+                    throw new KeyNotFoundException("Không tìm thấy cuộc hẹn hoặc bạn không có quyền hủy");
                 }
 
-                // Kiểm tra xem cuộc hẹn đã hoàn thành chưa
+                // Kiểm tra trạng thái cuộc hẹn
+                if (appointment.Status == "Cancelled")
+                {
+                    throw new InvalidOperationException("Cuộc hẹn đã được hủy trước đó");
+                }
+
                 if (appointment.Status == "Completed")
                 {
-                    throw new InvalidOperationException("Cannot cancel a completed appointment");
+                    throw new InvalidOperationException("Không thể hủy cuộc hẹn đã hoàn thành");
                 }
 
+                // Kiểm tra thời gian hủy (có thể thêm logic kiểm tra thời gian hủy trước cuộc hẹn)
+                
                 appointment.Status = "Cancelled";
                 appointmentRepository.Update(appointment);
                 await _unitOfWork.SaveChangesAsync();
 
+                await transaction.CommitAsync();
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error cancelling appointment {appointmentId} for user {userId}");
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, $"Lỗi khi hủy cuộc hẹn {appointmentId}");
                 throw;
             }
         }
@@ -430,6 +444,12 @@ namespace BusinessLogic.Services.Implementations
                 _logger.LogError(ex, $"Error getting appointments for doctor {doctorId} on {date}");
                 throw;
             }
+        }
+
+        private async Task<string> CreateGoogleMeetLinkAsync()
+        {
+            // TODO: Implement Google Meet API integration
+            return $"https://meet.google.com/{Guid.NewGuid().ToString("N").Substring(0, 12)}";
         }
     }
 }

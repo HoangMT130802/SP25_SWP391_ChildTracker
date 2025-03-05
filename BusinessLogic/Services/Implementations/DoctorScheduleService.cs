@@ -17,6 +17,9 @@ namespace BusinessLogic.Services.Implementations
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<DoctorScheduleService> _logger;
+        private const int SLOT_DURATION = 45; // Thời lượng slot cố định 45 phút
+        private readonly TimeOnly WORK_START_TIME = new TimeOnly(8, 0); // Giờ bắt đầu làm việc
+        private readonly TimeOnly WORK_END_TIME = new TimeOnly(17, 0); // Giờ kết thúc làm việc
 
         public DoctorScheduleService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<DoctorScheduleService> logger)
         {
@@ -31,10 +34,8 @@ namespace BusinessLogic.Services.Implementations
             {
                 var scheduleRepository = _unitOfWork.GetRepository<DoctorSchedule>();
                 var schedules = await scheduleRepository.GetAllAsync(includeProperties: "Doctor");
-
+                
                 var scheduleDTOs = _mapper.Map<IEnumerable<DoctorScheduleDTO>>(schedules);
-
-                // Tính toán các slot có sẵn cho mỗi lịch
                 foreach (var scheduleDTO in scheduleDTOs)
                 {
                     scheduleDTO.AvailableSlots = await CalculateAvailableSlotsAsync(scheduleDTO.ScheduleId);
@@ -44,7 +45,7 @@ namespace BusinessLogic.Services.Implementations
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting all doctor schedules");
+                _logger.LogError(ex, "Lỗi khi lấy tất cả lịch làm việc của bác sĩ");
                 throw;
             }
         }
@@ -134,19 +135,19 @@ namespace BusinessLogic.Services.Implementations
         {
             try
             {
+                // Kiểm tra ngày tạo lịch phải sau ngày hiện tại 3 ngày
+                var minAllowedDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3));
+                if (scheduleDTO.WorkDate < minAllowedDate)
+                {
+                    throw new InvalidOperationException("Chỉ được tạo lịch trước 3 ngày");
+                }
+
                 // Kiểm tra bác sĩ có tồn tại không
                 var userRepository = _unitOfWork.GetRepository<User>();
                 var doctor = await userRepository.GetAsync(u => u.UserId == scheduleDTO.DoctorId && u.Role == "Doctor");
-
                 if (doctor == null)
                 {
-                    throw new KeyNotFoundException($"Doctor with ID {scheduleDTO.DoctorId} not found");
-                }
-
-                // Kiểm tra thời gian hợp lệ
-                if (scheduleDTO.EndTime <= scheduleDTO.StartTime)
-                {
-                    throw new ArgumentException("End time must be after start time");
+                    throw new KeyNotFoundException($"Không tìm thấy bác sĩ với ID {scheduleDTO.DoctorId}");
                 }
 
                 // Kiểm tra xem đã có lịch cho bác sĩ vào ngày đó chưa
@@ -157,17 +158,17 @@ namespace BusinessLogic.Services.Implementations
 
                 if (existingSchedule != null)
                 {
-                    throw new InvalidOperationException($"Doctor already has a schedule for {scheduleDTO.WorkDate}");
+                    throw new InvalidOperationException($"Bác sĩ đã có lịch làm việc cho ngày {scheduleDTO.WorkDate}");
                 }
 
-                // Tạo lịch mới
+                // Tạo lịch mới với các slot cố định
                 var newSchedule = new DoctorSchedule
                 {
                     DoctorId = scheduleDTO.DoctorId,
                     WorkDate = scheduleDTO.WorkDate,
-                    StartTime = scheduleDTO.StartTime,
-                    EndTime = scheduleDTO.EndTime,
-                    SlotDuration = scheduleDTO.SlotDuration,
+                    StartTime = WORK_START_TIME,
+                    EndTime = WORK_END_TIME,
+                    SlotDuration = SLOT_DURATION,
                     Status = "Available",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -176,7 +177,6 @@ namespace BusinessLogic.Services.Implementations
                 await scheduleRepository.AddAsync(newSchedule);
                 await _unitOfWork.SaveChangesAsync();
 
-                // Lấy lịch đã tạo với thông tin bác sĩ
                 var createdSchedule = await scheduleRepository.GetAsync(
                     s => s.ScheduleId == newSchedule.ScheduleId,
                     includeProperties: "Doctor"
@@ -189,7 +189,7 @@ namespace BusinessLogic.Services.Implementations
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating doctor schedule");
+                _logger.LogError(ex, "Lỗi khi tạo lịch làm việc cho bác sĩ");
                 throw;
             }
         }
@@ -320,36 +320,38 @@ namespace BusinessLogic.Services.Implementations
             }
         }
 
-        private async Task<List<TimeSlotDTO>> CalculateAvailableSlotsAsync(int scheduleId)
+        public async Task<List<TimeSlotDTO>> CalculateAvailableSlotsAsync(int scheduleId)
         {
             var scheduleRepository = _unitOfWork.GetRepository<DoctorSchedule>();
             var schedule = await scheduleRepository.GetAsync(s => s.ScheduleId == scheduleId);
 
             if (schedule == null)
             {
-                throw new KeyNotFoundException($"Schedule with ID {scheduleId} not found");
+                throw new KeyNotFoundException($"Không tìm thấy lịch làm việc với ID {scheduleId}");
             }
 
             var appointmentRepository = _unitOfWork.GetRepository<Appointment>();
-            var bookedAppointments = await appointmentRepository.FindAsync(
-                a => a.ScheduleId == scheduleId && a.Status != "Cancelled"
+            var appointments = await appointmentRepository.FindAsync(
+                a => a.ScheduleId == scheduleId
             );
 
             var slots = new List<TimeSlotDTO>();
             var currentTime = schedule.StartTime;
 
-            while (AddMinutes(currentTime, schedule.SlotDuration) <= schedule.EndTime)
+            while (AddMinutes(currentTime, SLOT_DURATION) <= schedule.EndTime)
             {
-                var isAvailable = schedule.Status == "Available" &&
-                                 !bookedAppointments.Any(a => a.SlotTime == currentTime);
+                var appointment = appointments.FirstOrDefault(a => a.SlotTime == currentTime);
+                var isAvailable = appointment == null || appointment.Status == "Cancelled";
 
                 slots.Add(new TimeSlotDTO
                 {
                     SlotTime = currentTime,
-                    IsAvailable = isAvailable
+                    IsAvailable = isAvailable,
+                    IsCancelled = appointment?.Status == "Cancelled",
+                    AppointmentId = appointment?.AppointmentId
                 });
 
-                currentTime = AddMinutes(currentTime, schedule.SlotDuration);
+                currentTime = AddMinutes(currentTime, SLOT_DURATION);
             }
 
             return slots;

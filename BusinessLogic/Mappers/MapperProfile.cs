@@ -11,8 +11,8 @@ using System.Linq;
 
 namespace BusinessLogic.Mappers
 {
-    public class MapperProfile : Profile
-    {
+public class MapperProfile : Profile
+{
         private string GetFirstName(string fullName)
         {
             if (string.IsNullOrEmpty(fullName)) return string.Empty;
@@ -27,8 +27,8 @@ namespace BusinessLogic.Mappers
             return parts.Length > 1 ? string.Join(" ", parts.Skip(1)) : string.Empty;
         }
 
-        public MapperProfile()
-        {
+    public MapperProfile()
+    {
             // User mappings
             CreateMap<User, UserDTO>()
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
@@ -108,21 +108,21 @@ namespace BusinessLogic.Mappers
                 .ForMember(dest => dest.IsVerified, opt => opt.MapFrom(src => true));
 
             // Child mappings
-            CreateMap<Child, ChildDTO>();
-            CreateMap<CreateChildDTO, Child>();
-            CreateMap<UpdateChildDTO, Child>();
+        CreateMap<Child, ChildDTO>();
+        CreateMap<CreateChildDTO, Child>();
+        CreateMap<UpdateChildDTO, Child>();
 
-            // GrowthRecord mappings
-            CreateMap<GrowthRecord, GrowthRecordDTO>();
-            CreateMap<CreateGrowthRecordDTO, GrowthRecord>();
-            CreateMap<UpdateGrowthRecordDTO, GrowthRecord>();
-            CreateMap<GrowthRecordDTO, GrowthRecord>();
+        // GrowthRecord mappings
+        CreateMap<GrowthRecord, GrowthRecordDTO>();
+        CreateMap<CreateGrowthRecordDTO, GrowthRecord>();
+        CreateMap<UpdateGrowthRecordDTO, GrowthRecord>();
+        CreateMap<GrowthRecordDTO, GrowthRecord>();
 
             // Consultation mappings
-            CreateMap<ConsultationRequest, ConsultationRequestDTO>();
-            CreateMap<ConsultationResponse, ConsultationResponseDTO>();
-            CreateMap<CreateConsultationRequestDTO, ConsultationRequest>();
-            CreateMap<CreateConsultationResponseDTO, ConsultationResponse>();
+        CreateMap<ConsultationRequest, ConsultationRequestDTO>();
+        CreateMap<ConsultationResponse, ConsultationResponseDTO>();
+        CreateMap<CreateConsultationRequestDTO, ConsultationRequest>();
+        CreateMap<CreateConsultationResponseDTO, ConsultationResponse>();
         }
     }
 }

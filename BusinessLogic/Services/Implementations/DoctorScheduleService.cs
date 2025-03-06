@@ -38,7 +38,7 @@ namespace BusinessLogic.Services.Implementations
                 var scheduleDTOs = _mapper.Map<IEnumerable<DoctorScheduleDTO>>(schedules);
                 foreach (var scheduleDTO in scheduleDTOs)
                 {
-                    scheduleDTO.AvailableSlots = await CalculateAvailableSlotsAsync(scheduleDTO.ScheduleId);
+                    scheduleDTO.AvailableSlots = (await CalculateAvailableSlotsAsync(scheduleDTO.ScheduleId)).ToList();
                 }
 
                 return scheduleDTOs;
@@ -61,18 +61,16 @@ namespace BusinessLogic.Services.Implementations
                 );
 
                 var scheduleDTOs = _mapper.Map<IEnumerable<DoctorScheduleDTO>>(schedules);
-
-                // Tính toán các slot có sẵn cho mỗi lịch
                 foreach (var scheduleDTO in scheduleDTOs)
                 {
-                    scheduleDTO.AvailableSlots = await CalculateAvailableSlotsAsync(scheduleDTO.ScheduleId);
+                    scheduleDTO.AvailableSlots = (await CalculateAvailableSlotsAsync(scheduleDTO.ScheduleId)).ToList();
                 }
 
                 return scheduleDTOs;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting schedules for doctor {doctorId}");
+                _logger.LogError(ex, $"Lỗi khi lấy lịch làm việc của bác sĩ {doctorId}");
                 throw;
             }
         }
@@ -88,18 +86,16 @@ namespace BusinessLogic.Services.Implementations
                 );
 
                 var scheduleDTOs = _mapper.Map<IEnumerable<DoctorScheduleDTO>>(schedules);
-
-                // Tính toán các slot có sẵn cho mỗi lịch
                 foreach (var scheduleDTO in scheduleDTOs)
                 {
-                    scheduleDTO.AvailableSlots = await CalculateAvailableSlotsAsync(scheduleDTO.ScheduleId);
+                    scheduleDTO.AvailableSlots = (await CalculateAvailableSlotsAsync(scheduleDTO.ScheduleId)).ToList();
                 }
 
                 return scheduleDTOs;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting schedules for doctor {doctorId} between {startDate} and {endDate}");
+                _logger.LogError(ex, $"Lỗi khi lấy lịch làm việc của bác sĩ {doctorId} từ {startDate} đến {endDate}");
                 throw;
             }
         }
@@ -116,17 +112,17 @@ namespace BusinessLogic.Services.Implementations
 
                 if (schedule == null)
                 {
-                    throw new KeyNotFoundException($"Schedule with ID {scheduleId} not found");
+                    throw new KeyNotFoundException($"Không tìm thấy lịch làm việc với ID {scheduleId}");
                 }
 
                 var scheduleDTO = _mapper.Map<DoctorScheduleDTO>(schedule);
-                scheduleDTO.AvailableSlots = await CalculateAvailableSlotsAsync(scheduleId);
+                scheduleDTO.AvailableSlots = (await CalculateAvailableSlotsAsync(scheduleId)).ToList();
 
                 return scheduleDTO;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting schedule {scheduleId}");
+                _logger.LogError(ex, $"Lỗi khi lấy lịch làm việc {scheduleId}");
                 throw;
             }
         }
@@ -183,7 +179,7 @@ namespace BusinessLogic.Services.Implementations
                 );
 
                 var result = _mapper.Map<DoctorScheduleDTO>(createdSchedule);
-                result.AvailableSlots = await CalculateAvailableSlotsAsync(newSchedule.ScheduleId);
+                result.AvailableSlots = (await CalculateAvailableSlotsAsync(newSchedule.ScheduleId)).ToList();
 
                 return result;
             }
@@ -203,7 +199,7 @@ namespace BusinessLogic.Services.Implementations
 
                 if (schedule == null)
                 {
-                    throw new KeyNotFoundException($"Schedule with ID {scheduleId} not found");
+                    throw new KeyNotFoundException($"Không tìm thấy lịch làm việc với ID {scheduleId}");
                 }
 
                 // Kiểm tra xem có cuộc hẹn nào đã được đặt cho lịch này không
@@ -212,7 +208,7 @@ namespace BusinessLogic.Services.Implementations
 
                 if (existingAppointments.Any() && (scheduleDTO.StartTime.HasValue || scheduleDTO.EndTime.HasValue || scheduleDTO.SlotDuration.HasValue))
                 {
-                    throw new InvalidOperationException("Cannot modify time slots for a schedule that has appointments");
+                    throw new InvalidOperationException("Không thể thay đổi thời gian của lịch đã có cuộc hẹn");
                 }
 
                 // Cập nhật thông tin
@@ -247,13 +243,13 @@ namespace BusinessLogic.Services.Implementations
                 );
 
                 var result = _mapper.Map<DoctorScheduleDTO>(updatedSchedule);
-                result.AvailableSlots = await CalculateAvailableSlotsAsync(scheduleId);
+                result.AvailableSlots = (await CalculateAvailableSlotsAsync(scheduleId)).ToList();
 
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error updating schedule {scheduleId}");
+                _logger.LogError(ex, $"Lỗi khi cập nhật lịch làm việc {scheduleId}");
                 throw;
             }
         }
@@ -267,7 +263,7 @@ namespace BusinessLogic.Services.Implementations
 
                 if (schedule == null)
                 {
-                    throw new KeyNotFoundException($"Schedule with ID {scheduleId} not found");
+                    throw new KeyNotFoundException($"Không tìm thấy lịch làm việc với ID {scheduleId}");
                 }
 
                 // Kiểm tra xem có cuộc hẹn nào đã được đặt cho lịch này không
@@ -276,7 +272,7 @@ namespace BusinessLogic.Services.Implementations
 
                 if (existingAppointments.Any())
                 {
-                    throw new InvalidOperationException("Cannot delete a schedule that has appointments");
+                    throw new InvalidOperationException("Không thể xóa lịch làm việc đã có cuộc hẹn");
                 }
 
                 scheduleRepository.Delete(schedule);
@@ -286,22 +282,59 @@ namespace BusinessLogic.Services.Implementations
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error deleting schedule {scheduleId}");
+                _logger.LogError(ex, $"Lỗi khi xóa lịch làm việc {scheduleId}");
+                throw;
+            }
+        }
+
+        public async Task<List<TimeSlotDTO>> CalculateAvailableSlotsAsync(int scheduleId)
+        {
+            try
+            {
+                var scheduleRepository = _unitOfWork.GetRepository<DoctorSchedule>();
+                var schedule = await scheduleRepository.GetAsync(s => s.ScheduleId == scheduleId);
+
+                if (schedule == null)
+                {
+                    throw new KeyNotFoundException($"Không tìm thấy lịch làm việc với ID {scheduleId}");
+                }
+
+                var appointmentRepository = _unitOfWork.GetRepository<Appointment>();
+                var appointments = await appointmentRepository.FindAsync(a => a.ScheduleId == scheduleId);
+
+                var slots = new List<TimeSlotDTO>();
+                var currentTime = schedule.StartTime;
+
+                while (AddMinutes(currentTime, SLOT_DURATION) <= schedule.EndTime)
+                {
+                    var appointment = appointments.FirstOrDefault(a => a.SlotTime == currentTime);
+                    var isAvailable = schedule.Status == "Available" && 
+                                    (appointment == null || appointment.Status == "Cancelled");
+
+                    slots.Add(new TimeSlotDTO
+                    {
+                        SlotTime = currentTime,
+                        IsAvailable = isAvailable,
+                        IsCancelled = appointment?.Status == "Cancelled",
+                        AppointmentId = appointment?.AppointmentId,
+                        Status = appointment?.Status ?? "Available"
+                    });
+
+                    currentTime = AddMinutes(currentTime, SLOT_DURATION);
+                }
+
+                return slots;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi tính toán các slot cho lịch {scheduleId}");
                 throw;
             }
         }
 
         public async Task<IEnumerable<TimeSlotDTO>> GetAvailableSlotsAsync(int scheduleId)
         {
-            try
-            {
-                return await CalculateAvailableSlotsAsync(scheduleId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error getting available slots for schedule {scheduleId}");
-                throw;
-            }
+            return await CalculateAvailableSlotsAsync(scheduleId);
         }
 
         public async Task<bool> IsSlotAvailableAsync(int scheduleId, TimeOnly slotTime)
@@ -310,51 +343,13 @@ namespace BusinessLogic.Services.Implementations
             {
                 var slots = await CalculateAvailableSlotsAsync(scheduleId);
                 var slot = slots.FirstOrDefault(s => s.SlotTime == slotTime);
-
                 return slot != null && slot.IsAvailable;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error checking if slot {slotTime} is available for schedule {scheduleId}");
+                _logger.LogError(ex, $"Lỗi khi kiểm tra slot {slotTime} của lịch {scheduleId}");
                 throw;
             }
-        }
-
-        public async Task<List<TimeSlotDTO>> CalculateAvailableSlotsAsync(int scheduleId)
-        {
-            var scheduleRepository = _unitOfWork.GetRepository<DoctorSchedule>();
-            var schedule = await scheduleRepository.GetAsync(s => s.ScheduleId == scheduleId);
-
-            if (schedule == null)
-            {
-                throw new KeyNotFoundException($"Không tìm thấy lịch làm việc với ID {scheduleId}");
-            }
-
-            var appointmentRepository = _unitOfWork.GetRepository<Appointment>();
-            var appointments = await appointmentRepository.FindAsync(
-                a => a.ScheduleId == scheduleId
-            );
-
-            var slots = new List<TimeSlotDTO>();
-            var currentTime = schedule.StartTime;
-
-            while (AddMinutes(currentTime, SLOT_DURATION) <= schedule.EndTime)
-            {
-                var appointment = appointments.FirstOrDefault(a => a.SlotTime == currentTime);
-                var isAvailable = appointment == null || appointment.Status == "Cancelled";
-
-                slots.Add(new TimeSlotDTO
-                {
-                    SlotTime = currentTime,
-                    IsAvailable = isAvailable,
-                    IsCancelled = appointment?.Status == "Cancelled",
-                    AppointmentId = appointment?.AppointmentId
-                });
-
-                currentTime = AddMinutes(currentTime, SLOT_DURATION);
-            }
-
-            return slots;
         }
 
         private TimeOnly AddMinutes(TimeOnly time, int minutes)

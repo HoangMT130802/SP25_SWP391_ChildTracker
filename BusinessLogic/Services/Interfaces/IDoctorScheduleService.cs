@@ -18,5 +18,6 @@ namespace BusinessLogic.Services.Interfaces
         Task<bool> DeleteScheduleAsync(int scheduleId);
         Task<IEnumerable<TimeSlotDTO>> GetAvailableSlotsAsync(int scheduleId);
         Task<bool> IsSlotAvailableAsync(int scheduleId, TimeOnly slotTime);
+        Task<List<TimeSlotDTO>> CalculateAvailableSlotsAsync(int scheduleId);
     }
 }

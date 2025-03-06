@@ -9,7 +9,7 @@ namespace HealthChildTracker_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    /*[Authorize]*/
     public class DoctorScheduleController : ControllerBase
     {
         private readonly IDoctorScheduleService _scheduleService;
@@ -22,7 +22,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+       /* [Authorize(Roles = "Admin")]*/
         public async Task<IActionResult> GetAllSchedules()
         {
             try
@@ -90,7 +90,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Doctor,Admin")]
+      /*  [Authorize(Roles = "Doctor,Admin")]*/
         public async Task<IActionResult> CreateSchedule([FromBody] CreateDoctorScheduleDTO scheduleDTO)
         {
             try
@@ -127,7 +127,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpPut("{scheduleId}")]
-        [Authorize(Roles = "Doctor,Admin")]
+        /*[Authorize(Roles = "Doctor,Admin")]*/
         public async Task<IActionResult> UpdateSchedule(int scheduleId, [FromBody] UpdateDoctorScheduleDTO scheduleDTO)
         {
             try
@@ -165,7 +165,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpDelete("{scheduleId}")]
-        [Authorize(Roles = "Doctor,Admin")]
+        /*[Authorize(Roles = "Doctor,Admin")]*/
         public async Task<IActionResult> DeleteSchedule(int scheduleId)
         {
             try

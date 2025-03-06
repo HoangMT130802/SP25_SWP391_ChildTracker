@@ -1,8 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BusinessLogic.DTOs.Doctor_Schedule
 {
@@ -11,6 +8,7 @@ namespace BusinessLogic.DTOs.Doctor_Schedule
         public int ScheduleId { get; set; }
         public int DoctorId { get; set; }
         public string DoctorName { get; set; }
+        public string DoctorSpecialization { get; set; }
         public DateOnly WorkDate { get; set; }
         public TimeOnly StartTime { get; set; }
         public TimeOnly EndTime { get; set; }
@@ -18,7 +16,6 @@ namespace BusinessLogic.DTOs.Doctor_Schedule
         public string Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
-        public List<TimeSlotDTO> AvailableSlots { get; set; }
+        public List<TimeSlotDTO> AvailableSlots { get; set; } = new List<TimeSlotDTO>();
     }
-
-}
+} 

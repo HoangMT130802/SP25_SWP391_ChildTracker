@@ -9,7 +9,7 @@ namespace HealthChildTracker_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+   /* [Authorize]*/
     public class AppointmentController : ControllerBase
     {
         private readonly IAppointmentService _appointmentService;
@@ -22,7 +22,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        /*[Authorize(Roles = "Admin")]*/
         public async Task<IActionResult> GetAllAppointments()
         {
             try

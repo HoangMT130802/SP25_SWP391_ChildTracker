@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace BusinessLogic.Services.Implementations
 {
@@ -17,6 +18,7 @@ namespace BusinessLogic.Services.Implementations
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<AuthService> _logger;
+        private static readonly ConcurrentDictionary<string, UserSession> _sessions = new();
 
         public AuthService(
             IUnitOfWork unitOfWork,
@@ -50,8 +52,23 @@ namespace BusinessLogic.Services.Implementations
                     throw new UnauthorizedAccessException("Thông tin đăng nhập không chính xác");
                 }
 
+                // Tạo session mới
+                var sessionId = Guid.NewGuid().ToString();
+                var session = new UserSession
+                {
+                    UserId = user.UserId,
+                    Username = user.Username,
+                    Role = user.Role,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _sessions.TryAdd(sessionId, session);
+
+                var response = _mapper.Map<UserResponseDTO>(user);
+                response.SessionId = sessionId;
+
                 _logger.LogInformation($"User {user.Username} logged in successfully");
-                return _mapper.Map<UserResponseDTO>(user);
+                return response;
             }
             catch (Exception ex)
             {
@@ -67,23 +84,14 @@ namespace BusinessLogic.Services.Implementations
                 await ValidateRegistrationRequest(request);
 
                 var userRepository = _unitOfWork.GetRepository<User>();
-
-               
                 var newUser = _mapper.Map<User>(request);
+                newUser.CreatedAt = DateTime.UtcNow;
+                newUser.UpdatedAt = DateTime.UtcNow;
 
-               
                 await userRepository.AddAsync(newUser);
+                await _unitOfWork.SaveChangesAsync();
 
-                
-                var result = await _unitOfWork.SaveChangesAsync();
-
-                if (result <= 0)
-                {
-                    throw new Exception("Không thể lưu user mới vào database");
-                }
-
-                _logger.LogInformation($"User {newUser.Username} registered successfully with ID: {newUser.UserId}");
-
+                _logger.LogInformation($"User {newUser.Username} registered successfully");
                 return _mapper.Map<UserResponseDTO>(newUser);
             }
             catch (Exception ex)
@@ -92,6 +100,17 @@ namespace BusinessLogic.Services.Implementations
                 throw;
             }
         }
+
+        public async Task<bool> LogoutAsync(string sessionId)
+        {
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                return false;
+            }
+
+            return _sessions.TryRemove(sessionId, out _);
+        }
+
         public async Task ValidateRegistrationRequest(RegisterRequestDTO request)
         {
             var userRepository = _unitOfWork.GetRepository<User>();
@@ -134,5 +153,13 @@ namespace BusinessLogic.Services.Implementations
         {            
             return password; 
         }
+    }
+
+    public class UserSession
+    {
+        public int UserId { get; set; }
+        public string Username { get; set; }
+        public string Role { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }

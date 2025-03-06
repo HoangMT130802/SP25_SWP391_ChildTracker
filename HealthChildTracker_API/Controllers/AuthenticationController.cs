@@ -22,12 +22,22 @@ namespace HealthChildTrackerAPI.Controllers
         }
 
         [HttpPost("login")]
-      
+        [AllowAnonymous]
         public async Task<ActionResult<UserResponseDTO>> Login([FromBody] LoginRequestDTO request)
         {
             try
             {
                 var response = await _authService.LoginAsync(request);
+                
+                // Lưu session ID vào cookie
+                Response.Cookies.Append("SessionId", response.SessionId, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTime.UtcNow.AddDays(1)
+                });
+
                 return Ok(response);
             }
             catch (UnauthorizedAccessException ex)
@@ -43,7 +53,7 @@ namespace HealthChildTrackerAPI.Controllers
         }
 
         [HttpPost("register")]
-      
+        [AllowAnonymous]
         public async Task<ActionResult<UserResponseDTO>> Register([FromBody] RegisterRequestDTO request)
         {
             try
@@ -65,6 +75,34 @@ namespace HealthChildTrackerAPI.Controllers
             {
                 _logger.LogError($"Registration error: {ex.Message}");
                 return BadRequest(new { message = "Đã có lỗi xảy ra khi đăng ký" });
+            }
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            try
+            {
+                var sessionId = Request.Cookies["SessionId"];
+                if (string.IsNullOrEmpty(sessionId))
+                {
+                    return BadRequest(new { message = "Không tìm thấy phiên đăng nhập" });
+                }
+
+                var result = await _authService.LogoutAsync(sessionId);
+                if (result)
+                {
+                    // Xóa cookie
+                    Response.Cookies.Delete("SessionId");
+                    return Ok(new { message = "Đăng xuất thành công" });
+                }
+
+                return BadRequest(new { message = "Đăng xuất thất bại" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Logout error: {ex.Message}");
+                return BadRequest(new { message = "Đã có lỗi xảy ra khi đăng xuất" });
             }
         }
     }

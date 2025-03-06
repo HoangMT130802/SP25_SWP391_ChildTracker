@@ -70,9 +70,16 @@ namespace BusinessLogic.Services.Implementations
             {
                 var userRepository = _unitOfWork.GetRepository<User>();
                 
+                // Kiểm tra username đã tồn tại
+                var existingUsername = await userRepository.GetAsync(u => u.Username == doctorDTO.Username);
+                if (existingUsername != null)
+                {
+                    throw new InvalidOperationException("Username đã tồn tại trong hệ thống");
+                }
+
                 // Kiểm tra email đã tồn tại
-                var existingUser = await userRepository.GetAsync(u => u.Email == doctorDTO.Email);
-                if (existingUser != null)
+                var existingEmail = await userRepository.GetAsync(u => u.Email == doctorDTO.Email);
+                if (existingEmail != null)
                 {
                     throw new InvalidOperationException("Email đã tồn tại trong hệ thống");
                 }
@@ -80,9 +87,10 @@ namespace BusinessLogic.Services.Implementations
                 // Tạo user mới
                 var user = new User
                 {
+                    Username = doctorDTO.Username,
                     Email = doctorDTO.Email,
                     Password = BCrypt.Net.BCrypt.HashPassword(doctorDTO.Password),
-                    FullName = $"{doctorDTO.FirstName} {doctorDTO.LastName}",
+                    FullName = doctorDTO.FullName,
                     Phone = doctorDTO.PhoneNumber,
                     Address = doctorDTO.Address,
                     Role = "Doctor",
@@ -103,7 +111,7 @@ namespace BusinessLogic.Services.Implementations
                     Qualification = doctorDTO.Qualification,
                     Biography = doctorDTO.Description,
                     LicenseNumber = doctorDTO.LicenseNumber,
-                    Experience = 0, // Chuyển đổi từ string sang int nếu cần
+                    Experience = 0,
                     AverageRating = 0,
                     TotalRatings = 0,
                     IsVerified = true
@@ -140,7 +148,7 @@ namespace BusinessLogic.Services.Implementations
                 }
 
                 // Cập nhật thông tin user
-                doctor.FullName = $"{doctorDTO.FirstName} {doctorDTO.LastName}";
+                doctor.FullName = doctorDTO.FullName;
                 doctor.Phone = doctorDTO.PhoneNumber;
                 doctor.Address = doctorDTO.Address;
                 doctor.UpdatedAt = DateTime.UtcNow;
@@ -158,7 +166,6 @@ namespace BusinessLogic.Services.Implementations
                     profile.Qualification = doctorDTO.Qualification;
                     profile.Biography = doctorDTO.Description;
                     profile.LicenseNumber = doctorDTO.LicenseNumber;
-                    profile.Experience = 0; // Chuyển đổi từ string sang int nếu cần
                     profile.IsVerified = true;
 
                     profileRepository.Update(profile);

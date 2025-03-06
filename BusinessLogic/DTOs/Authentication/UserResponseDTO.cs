@@ -12,8 +12,11 @@ namespace BusinessLogic.DTOs.Authentication
         public string Username { get; set; }
         public string Email { get; set; }
         public string FullName { get; set; }
+        public string Phone { get; set; }
+        public string Address { get; set; }
         public string Role { get; set; }
         public bool Status { get; set; }
+        public string SessionId { get; set; }
 
         // public string Token { get; set; }  
     }

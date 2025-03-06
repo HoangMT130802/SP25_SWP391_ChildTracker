@@ -5,16 +5,16 @@ namespace BusinessLogic.DTOs.Doctor
 {
     public class UpdateDoctorDTO
     {
-        [Required(ErrorMessage = "Họ không được để trống")]
-        public string FirstName { get; set; }
-
-        [Required(ErrorMessage = "Tên không được để trống")]
-        public string LastName { get; set; }
+        [Required(ErrorMessage = "Họ tên không được để trống")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Họ tên phải từ 2-100 ký tự")]
+        public string FullName { get; set; }
 
         [Required(ErrorMessage = "Số điện thoại không được để trống")]
         [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
         public string PhoneNumber { get; set; }
 
+        [Required(ErrorMessage = "Địa chỉ không được để trống")]
+        [StringLength(200, ErrorMessage = "Địa chỉ không được vượt quá 200 ký tự")]
         public string Address { get; set; }
 
         [Required(ErrorMessage = "Ngày sinh không được để trống")]
@@ -29,7 +29,7 @@ namespace BusinessLogic.DTOs.Doctor
         [Required(ErrorMessage = "Bằng cấp không được để trống")]
         public string Qualification { get; set; }
 
-        [Required(ErrorMessage = "Số giấy phép hành nghề không được để trống")]
+        [Required(ErrorMessage = "Số giấy phép không được để trống")]
         public string LicenseNumber { get; set; }
 
         [Required(ErrorMessage = "Nơi làm việc không được để trống")]

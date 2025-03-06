@@ -13,5 +13,6 @@ namespace BusinessLogic.Services.Interfaces
         Task<UserResponseDTO> LoginAsync(LoginRequestDTO request);
         Task<UserResponseDTO> RegisterAsync(RegisterRequestDTO request);
         Task ValidateRegistrationRequest(RegisterRequestDTO request);
+        Task<bool> LogoutAsync(string sessionId);
     }
 }

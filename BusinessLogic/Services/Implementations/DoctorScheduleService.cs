@@ -220,6 +220,7 @@ namespace BusinessLogic.Services.Implementations
                     EndTime = DEFAULT_SLOTS[selectedSlots.Last() - 1].EndTime,
                     SlotDuration = SLOT_DURATION,
                     Status = "Available",
+                    SelectedSlots = string.Join(",", selectedSlots),
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
                 };
@@ -352,28 +353,28 @@ namespace BusinessLogic.Services.Implementations
                 var appointmentRepository = _unitOfWork.GetRepository<Appointment>();
                 var appointments = await appointmentRepository.FindAsync(a => a.ScheduleId == scheduleId);
 
+                // Lấy danh sách slot đã chọn từ database
+                var selectedSlotIds = GetSelectedSlotIdsFromSchedule(schedule);
+                var selectedSlots = DEFAULT_SLOTS
+                    .Where(slot => selectedSlotIds.Contains(slot.SlotId))
+                    .OrderBy(slot => slot.StartTime);
+
                 var slots = new List<TimeSlotDTO>();
-                var currentTime = schedule.StartTime;
-
-                while (AddMinutes(currentTime, SLOT_DURATION) <= schedule.EndTime)
+                foreach (var slot in selectedSlots)
                 {
-                    var appointment = appointments.FirstOrDefault(a => a.SlotTime == currentTime);
-                    var isAvailable = schedule.Status == "Available" && 
-                                    (appointment == null || appointment.Status == "Cancelled");
-
+                    var appointment = appointments.FirstOrDefault(a => a.SlotTime == slot.StartTime);
                     slots.Add(new TimeSlotDTO
                     {
-                        SlotId = GetSlotIdByTime(currentTime),
-                        StartTime = currentTime,
-                        EndTime = AddMinutes(currentTime, SLOT_DURATION),
-                        SlotTime = currentTime,
-                        IsAvailable = isAvailable,
+                        SlotId = slot.SlotId,
+                        StartTime = slot.StartTime,
+                        EndTime = slot.EndTime,
+                        SlotTime = slot.StartTime,
+                        IsAvailable = schedule.Status == "Available" && 
+                                    (appointment == null || appointment.Status == "Cancelled"),
                         IsCancelled = appointment?.Status == "Cancelled",
                         AppointmentId = appointment?.AppointmentId,
                         Status = appointment?.Status ?? "Available"
                     });
-
-                    currentTime = AddMinutes(currentTime, SLOT_DURATION);
                 }
 
                 return slots;
@@ -383,6 +384,48 @@ namespace BusinessLogic.Services.Implementations
                 _logger.LogError(ex, $"Lỗi khi tính toán các slot cho lịch {scheduleId}");
                 throw;
             }
+        }
+
+        private List<int> GetSelectedSlotIdsFromSchedule(DoctorSchedule schedule)
+        {
+            // Nếu không có SelectedSlots, tính toán dựa trên StartTime và EndTime
+            if (string.IsNullOrEmpty(schedule.SelectedSlots))
+            {
+                var slots = new List<int>();
+                foreach (var slot in DEFAULT_SLOTS)
+                {
+                    if (slot.StartTime >= schedule.StartTime && slot.EndTime <= schedule.EndTime)
+                    {
+                        slots.Add(slot.SlotId);
+                    }
+                }
+                return slots;
+            }
+
+            // Nếu có SelectedSlots, parse từ chuỗi
+            return schedule.SelectedSlots
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(int.Parse)
+                .ToList();
+        }
+
+        private List<TimeSlotDTO> GetSelectedTimeSlots(List<int> selectedSlotIds)
+        {
+            return DEFAULT_SLOTS
+                .Where(slot => selectedSlotIds.Contains(slot.SlotId))
+                .OrderBy(slot => slot.StartTime)
+                .Select(slot => new TimeSlotDTO
+                {
+                    SlotId = slot.SlotId,
+                    StartTime = slot.StartTime,
+                    EndTime = slot.EndTime,
+                    SlotTime = slot.StartTime,
+                    IsAvailable = true,
+                    IsCancelled = false,
+                    AppointmentId = null,
+                    Status = "Available"
+                })
+                .ToList();
         }
 
         private int GetSlotIdByTime(TimeOnly time)
@@ -445,32 +488,6 @@ namespace BusinessLogic.Services.Implementations
                 _logger.LogError(ex, $"Lỗi khi lấy lịch làm việc của bác sĩ {doctorId}");
                 throw;
             }
-        }
-
-        private List<int> GetSelectedSlotIdsFromSchedule(DoctorSchedule schedule)
-        {
-            return DEFAULT_SLOTS
-                .Where(slot => slot.StartTime >= schedule.StartTime && slot.EndTime <= schedule.EndTime)
-                .Select(slot => slot.SlotId)
-                .ToList();
-        }
-
-        private List<TimeSlotDTO> GetSelectedTimeSlots(List<int> selectedSlotIds)
-        {
-            return DEFAULT_SLOTS
-                .Where(slot => selectedSlotIds.Contains(slot.SlotId))
-                .Select(slot => new TimeSlotDTO
-                {
-                    SlotId = slot.SlotId,
-                    StartTime = slot.StartTime,
-                    EndTime = slot.EndTime,
-                    SlotTime = slot.StartTime,
-                    IsAvailable = true,
-                    IsCancelled = false,
-                    AppointmentId = null,
-                    Status = "Available"
-                })
-                .ToList();
         }
     }
 

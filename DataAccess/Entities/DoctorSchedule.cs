@@ -21,6 +21,8 @@ public partial class DoctorSchedule
 
     public string Status { get; set; }
 
+    public string SelectedSlots { get; set; } = string.Empty;
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }

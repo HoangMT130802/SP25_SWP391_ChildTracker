@@ -1,14 +1,21 @@
 ﻿using BusinessLogic.Mappers;
 using BusinessLogic.Services.Interfaces;
 using BusinessLogic.Services.Implementations;
+using BusinessLogic.Utils;
 using DataAccess.UnitOfWork;
 using DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new DateTimeConverters.DateOnlyJsonConverter());
+        options.JsonSerializerOptions.Converters.Add(new DateTimeConverters.TimeOnlyJsonConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

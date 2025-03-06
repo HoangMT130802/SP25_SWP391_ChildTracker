@@ -9,15 +9,16 @@ namespace BusinessLogic.Services.Interfaces
 {
     public interface IDoctorScheduleService
     {
-        Task<IEnumerable<DoctorScheduleDTO>> GetAllSchedulesAsync();
-        Task<IEnumerable<DoctorScheduleDTO>> GetDoctorSchedulesAsync(int doctorId);
-        Task<IEnumerable<DoctorScheduleDTO>> GetDoctorSchedulesByDateRangeAsync(int doctorId, DateOnly startDate, DateOnly endDate);
-        Task<DoctorScheduleDTO> GetScheduleByIdAsync(int scheduleId);
+        // Lấy danh sách 8 slot mặc định
+        List<TimeSlotDTO> GetDefaultTimeSlots();
+        
+        // Tạo lịch làm việc mới
         Task<DoctorScheduleDTO> CreateScheduleAsync(CreateDoctorScheduleDTO scheduleDTO);
-        Task<DoctorScheduleDTO> UpdateScheduleAsync(int scheduleId, UpdateDoctorScheduleDTO scheduleDTO);
-        Task<bool> DeleteScheduleAsync(int scheduleId);
+        
+        // Lấy lịch làm việc theo tuần (từ thứ 2 đến thứ 6)
+        Task<IEnumerable<DoctorScheduleDTO>> GetDoctorSchedulesByWeekAsync(int doctorId, DateOnly weekStart);
+        
+        // Lấy các slot có sẵn của một lịch
         Task<IEnumerable<TimeSlotDTO>> GetAvailableSlotsAsync(int scheduleId);
-        Task<bool> IsSlotAvailableAsync(int scheduleId, TimeOnly slotTime);
-        Task<List<TimeSlotDTO>> CalculateAvailableSlotsAsync(int scheduleId);
     }
 }

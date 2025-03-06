@@ -213,13 +213,13 @@ namespace BusinessLogic.Services.Implementations
                 }
 
                 // Kiểm tra slot có sẵn
-                var slots = await _scheduleService.CalculateAvailableSlotsAsync(appointmentDTO.ScheduleId);
+               /* var slots = await _scheduleService.CalculateAvailableSlotsAsync(appointmentDTO.ScheduleId);
                 var selectedSlot = slots.FirstOrDefault(s => s.SlotTime == appointmentDTO.SlotTime);
 
                 if (selectedSlot == null || !selectedSlot.IsAvailable)
                 {
                     throw new InvalidOperationException("Slot này không khả dụng");
-                }
+                }*/
 
                 // Tạo link Google Meet
                 string meetingLink = await CreateGoogleMeetLinkAsync();

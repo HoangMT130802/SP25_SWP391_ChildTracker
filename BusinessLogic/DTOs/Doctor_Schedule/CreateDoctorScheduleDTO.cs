@@ -1,5 +1,6 @@
-using System;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using BusinessLogic.Utils;
 
 namespace BusinessLogic.DTOs.Doctor_Schedule
 {
@@ -9,16 +10,11 @@ namespace BusinessLogic.DTOs.Doctor_Schedule
         public int DoctorId { get; set; }
 
         [Required(ErrorMessage = "Ngày làm việc không được để trống")]
-        public DateOnly WorkDate { get; set; }
+        [RegularExpression(@"^\d{4}-\d{2}-\d{2}$", ErrorMessage = "Ngày làm việc phải có định dạng yyyy-MM-dd")]
+        public string WorkDate { get; set; }
 
-        [Required(ErrorMessage = "Giờ bắt đầu không được để trống")]
-        public TimeOnly? StartTime { get; set; }
-
-        [Required(ErrorMessage = "Giờ kết thúc không được để trống")]
-        public TimeOnly? EndTime { get; set; }
-
-        [Required(ErrorMessage = "Thời lượng slot không được để trống")]
-        [Range(15, 120, ErrorMessage = "Thời lượng slot phải từ 15 đến 120 phút")]
-        public int? SlotDuration { get; set; }
+        [Required(ErrorMessage = "Phải chọn các slot làm việc")]
+        [MinLength(6, ErrorMessage = "Phải chọn ít nhất 6 slot làm việc")]
+        public List<int> SelectedSlotIds { get; set; }
     }
 } 

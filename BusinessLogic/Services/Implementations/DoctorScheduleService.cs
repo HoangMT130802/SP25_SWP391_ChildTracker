@@ -17,15 +17,40 @@ namespace BusinessLogic.Services.Implementations
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<DoctorScheduleService> _logger;
-        private const int SLOT_DURATION = 45; // Thời lượng slot cố định 45 phút
-        private readonly TimeOnly WORK_START_TIME = new TimeOnly(8, 0); // Giờ bắt đầu làm việc
-        private readonly TimeOnly WORK_END_TIME = new TimeOnly(17, 0); // Giờ kết thúc làm việc
+        private const int SLOT_DURATION = 45;
+        
+        private static readonly List<TimeSlot> DEFAULT_SLOTS = new List<TimeSlot>
+        {
+            new TimeSlot { SlotId = 1, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(8, 45) },
+            new TimeSlot { SlotId = 2, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(9, 45) },
+            new TimeSlot { SlotId = 3, StartTime = new TimeOnly(10, 0), EndTime = new TimeOnly(10, 45) },
+            new TimeSlot { SlotId = 4, StartTime = new TimeOnly(11, 0), EndTime = new TimeOnly(11, 45) },
+            new TimeSlot { SlotId = 5, StartTime = new TimeOnly(13, 0), EndTime = new TimeOnly(13, 45) },
+            new TimeSlot { SlotId = 6, StartTime = new TimeOnly(14, 0), EndTime = new TimeOnly(14, 45) },
+            new TimeSlot { SlotId = 7, StartTime = new TimeOnly(15, 0), EndTime = new TimeOnly(15, 45) },
+            new TimeSlot { SlotId = 8, StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(16, 45) }
+        };
 
         public DoctorScheduleService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<DoctorScheduleService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
+        }
+
+        public List<TimeSlotDTO> GetDefaultTimeSlots()
+        {
+            return DEFAULT_SLOTS.Select(slot => new TimeSlotDTO
+            {
+                SlotId = slot.SlotId,
+                StartTime = slot.StartTime,
+                EndTime = slot.EndTime,
+                SlotTime = slot.StartTime,
+                IsAvailable = true,
+                IsCancelled = false,
+                AppointmentId = null,
+                Status = "Available"
+            }).ToList();
         }
 
         public async Task<IEnumerable<DoctorScheduleDTO>> GetAllSchedulesAsync()
@@ -131,11 +156,24 @@ namespace BusinessLogic.Services.Implementations
         {
             try
             {
+                // Parse ngày làm việc từ string
+                if (!DateOnly.TryParseExact(scheduleDTO.WorkDate, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out DateOnly workDate))
+                {
+                    throw new InvalidOperationException("Ngày làm việc không đúng định dạng (yyyy-MM-dd)");
+                }
+
                 // Kiểm tra ngày tạo lịch phải sau ngày hiện tại 3 ngày
-                var minAllowedDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3));
-                if (scheduleDTO.WorkDate < minAllowedDate)
+                var minAllowedDate = DateOnly.FromDateTime(DateTime.Now.AddDays(3));
+                if (workDate < minAllowedDate)
                 {
                     throw new InvalidOperationException("Chỉ được tạo lịch trước 3 ngày");
+                }
+
+                // Kiểm tra ngày làm việc phải là thứ 2 đến thứ 6
+                var dayOfWeek = workDate.DayOfWeek;
+                if (dayOfWeek == DayOfWeek.Saturday || dayOfWeek == DayOfWeek.Sunday)
+                {
+                    throw new InvalidOperationException("Chỉ được tạo lịch từ thứ 2 đến thứ 6");
                 }
 
                 // Kiểm tra bác sĩ có tồn tại không
@@ -149,37 +187,49 @@ namespace BusinessLogic.Services.Implementations
                 // Kiểm tra xem đã có lịch cho bác sĩ vào ngày đó chưa
                 var scheduleRepository = _unitOfWork.GetRepository<DoctorSchedule>();
                 var existingSchedule = await scheduleRepository.GetAsync(
-                    s => s.DoctorId == scheduleDTO.DoctorId && s.WorkDate == scheduleDTO.WorkDate
+                    s => s.DoctorId == scheduleDTO.DoctorId && s.WorkDate == workDate
                 );
 
                 if (existingSchedule != null)
                 {
-                    throw new InvalidOperationException($"Bác sĩ đã có lịch làm việc cho ngày {scheduleDTO.WorkDate}");
+                    throw new InvalidOperationException($"Bác sĩ đã có lịch làm việc cho ngày {workDate}");
                 }
 
-                // Tạo lịch mới với các slot cố định
+                // Kiểm tra số lượng slot được chọn
+                if (scheduleDTO.SelectedSlotIds == null || scheduleDTO.SelectedSlotIds.Count < 6)
+                {
+                    throw new InvalidOperationException("Phải chọn ít nhất 6 slot làm việc");
+                }
+
+                // Kiểm tra slot ID hợp lệ và sắp xếp theo thứ tự
+                var selectedSlots = scheduleDTO.SelectedSlotIds.OrderBy(x => x).ToList();
+                foreach (var slotId in selectedSlots)
+                {
+                    if (!DEFAULT_SLOTS.Any(s => s.SlotId == slotId))
+                    {
+                        throw new InvalidOperationException($"Slot ID {slotId} không hợp lệ");
+                    }
+                }
+
+                // Tạo lịch mới
                 var newSchedule = new DoctorSchedule
                 {
                     DoctorId = scheduleDTO.DoctorId,
-                    WorkDate = scheduleDTO.WorkDate,
-                    StartTime = WORK_START_TIME,
-                    EndTime = WORK_END_TIME,
+                    WorkDate = workDate,
+                    StartTime = DEFAULT_SLOTS[selectedSlots.First() - 1].StartTime,
+                    EndTime = DEFAULT_SLOTS[selectedSlots.Last() - 1].EndTime,
                     SlotDuration = SLOT_DURATION,
                     Status = "Available",
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
                 };
 
                 await scheduleRepository.AddAsync(newSchedule);
                 await _unitOfWork.SaveChangesAsync();
 
-                var createdSchedule = await scheduleRepository.GetAsync(
-                    s => s.ScheduleId == newSchedule.ScheduleId,
-                    includeProperties: "Doctor"
-                );
-
-                var result = _mapper.Map<DoctorScheduleDTO>(createdSchedule);
-                result.AvailableSlots = (await CalculateAvailableSlotsAsync(newSchedule.ScheduleId)).ToList();
+                var result = _mapper.Map<DoctorScheduleDTO>(newSchedule);
+                result.SelectedSlotIds = selectedSlots;
+                result.AvailableSlots = GetSelectedTimeSlots(selectedSlots);
 
                 return result;
             }
@@ -313,6 +363,9 @@ namespace BusinessLogic.Services.Implementations
 
                     slots.Add(new TimeSlotDTO
                     {
+                        SlotId = GetSlotIdByTime(currentTime),
+                        StartTime = currentTime,
+                        EndTime = AddMinutes(currentTime, SLOT_DURATION),
                         SlotTime = currentTime,
                         IsAvailable = isAvailable,
                         IsCancelled = appointment?.Status == "Cancelled",
@@ -330,6 +383,12 @@ namespace BusinessLogic.Services.Implementations
                 _logger.LogError(ex, $"Lỗi khi tính toán các slot cho lịch {scheduleId}");
                 throw;
             }
+        }
+
+        private int GetSlotIdByTime(TimeOnly time)
+        {
+            var slot = DEFAULT_SLOTS.FirstOrDefault(s => s.StartTime == time);
+            return slot?.SlotId ?? 0;
         }
 
         public async Task<IEnumerable<TimeSlotDTO>> GetAvailableSlotsAsync(int scheduleId)
@@ -356,5 +415,69 @@ namespace BusinessLogic.Services.Implementations
         {
             return time.AddMinutes(minutes);
         }
+
+        public async Task<IEnumerable<DoctorScheduleDTO>> GetDoctorSchedulesByWeekAsync(int doctorId, DateOnly weekStart)
+        {
+            try
+            {
+                var weekEnd = weekStart.AddDays(4); // Thứ 2 đến thứ 6
+                var scheduleRepository = _unitOfWork.GetRepository<DoctorSchedule>();
+                var schedules = await scheduleRepository.FindAsync(
+                    s => s.DoctorId == doctorId && 
+                         s.WorkDate >= weekStart && 
+                         s.WorkDate <= weekEnd,
+                    includeProperties: "Doctor"
+                );
+
+                var scheduleDTOs = _mapper.Map<IEnumerable<DoctorScheduleDTO>>(schedules);
+                foreach (var scheduleDTO in scheduleDTOs)
+                {
+                    var schedule = schedules.First(s => s.ScheduleId == scheduleDTO.ScheduleId);
+                    var selectedSlotIds = GetSelectedSlotIdsFromSchedule(schedule);
+                    scheduleDTO.SelectedSlotIds = selectedSlotIds;
+                    scheduleDTO.AvailableSlots = (await GetAvailableSlotsAsync(scheduleDTO.ScheduleId)).ToList();
+                }
+
+                return scheduleDTOs;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lấy lịch làm việc của bác sĩ {doctorId}");
+                throw;
+            }
+        }
+
+        private List<int> GetSelectedSlotIdsFromSchedule(DoctorSchedule schedule)
+        {
+            return DEFAULT_SLOTS
+                .Where(slot => slot.StartTime >= schedule.StartTime && slot.EndTime <= schedule.EndTime)
+                .Select(slot => slot.SlotId)
+                .ToList();
+        }
+
+        private List<TimeSlotDTO> GetSelectedTimeSlots(List<int> selectedSlotIds)
+        {
+            return DEFAULT_SLOTS
+                .Where(slot => selectedSlotIds.Contains(slot.SlotId))
+                .Select(slot => new TimeSlotDTO
+                {
+                    SlotId = slot.SlotId,
+                    StartTime = slot.StartTime,
+                    EndTime = slot.EndTime,
+                    SlotTime = slot.StartTime,
+                    IsAvailable = true,
+                    IsCancelled = false,
+                    AppointmentId = null,
+                    Status = "Available"
+                })
+                .ToList();
+        }
+    }
+
+    public class TimeSlot
+    {
+        public int SlotId { get; set; }
+        public TimeOnly StartTime { get; set; }
+        public TimeOnly EndTime { get; set; }
     }
 }

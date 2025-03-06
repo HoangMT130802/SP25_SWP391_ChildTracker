@@ -1,4 +1,4 @@
-﻿using BusinessLogic.DTOs.Doctor_Schedule;
+using BusinessLogic.DTOs.Doctor_Schedule;
 using BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -9,7 +9,7 @@ namespace HealthChildTracker_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    /*[Authorize]*/
+    
     public class DoctorScheduleController : ControllerBase
     {
         private readonly IDoctorScheduleService _scheduleService;
@@ -21,179 +21,40 @@ namespace HealthChildTracker_API.Controllers
             _logger = logger;
         }
 
-        [HttpGet]
-       /* [Authorize(Roles = "Admin")]*/
-        public async Task<IActionResult> GetAllSchedules()
-        {
-            try
-            {
-                var schedules = await _scheduleService.GetAllSchedulesAsync();
-                return Ok(schedules);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting all doctor schedules");
-                return StatusCode(500, new { message = "Internal server error" });
-            }
-        }
-
-        [HttpGet("doctor/{doctorId}")]
-        public async Task<IActionResult> GetDoctorSchedules(int doctorId)
-        {
-            try
-            {
-                var schedules = await _scheduleService.GetDoctorSchedulesAsync(doctorId);
-                return Ok(schedules);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error getting schedules for doctor {doctorId}");
-                return StatusCode(500, new { message = "Internal server error" });
-            }
-        }
-
-        [HttpGet("doctor/{doctorId}/daterange")]
-        public async Task<IActionResult> GetDoctorSchedulesByDateRange(
-            int doctorId,
-            [FromQuery] DateOnly startDate,
-            [FromQuery] DateOnly endDate)
-        {
-            try
-            {
-                var schedules = await _scheduleService.GetDoctorSchedulesByDateRangeAsync(doctorId, startDate, endDate);
-                return Ok(schedules);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error getting schedules for doctor {doctorId} between {startDate} and {endDate}");
-                return StatusCode(500, new { message = "Internal server error" });
-            }
-        }
-
-        [HttpGet("{scheduleId}")]
-        public async Task<IActionResult> GetScheduleById(int scheduleId)
-        {
-            try
-            {
-                var schedule = await _scheduleService.GetScheduleByIdAsync(scheduleId);
-                return Ok(schedule);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error getting schedule {scheduleId}");
-                return StatusCode(500, new { message = "Internal server error" });
-            }
-        }
-
         [HttpPost]
-      /*  [Authorize(Roles = "Doctor,Admin")]*/
+        [AllowAnonymous]
         public async Task<IActionResult> CreateSchedule([FromBody] CreateDoctorScheduleDTO scheduleDTO)
         {
             try
             {
-               
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                // Kiểm tra xác thực nếu có
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                var userRoleClaim = User.FindFirst(ClaimTypes.Role);
 
-                if (userRole == "Doctor" && userId != scheduleDTO.DoctorId)
+                // Nếu user đã đăng nhập và là bác sĩ
+                if (userIdClaim != null && userRoleClaim?.Value == "Doctor")
                 {
-                    return Forbid("Doctors can only create schedules for themselves");
+                    var userId = int.Parse(userIdClaim.Value);
+                    if (userId != scheduleDTO.DoctorId)
+                    {
+                        return Forbid("Bác sĩ chỉ được tạo lịch cho chính mình");
+                    }
                 }
 
                 var createdSchedule = await _scheduleService.CreateScheduleAsync(scheduleDTO);
-                return CreatedAtAction(nameof(GetScheduleById), new { scheduleId = createdSchedule.ScheduleId }, createdSchedule);
+                return Ok(createdSchedule);
             }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
+            catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating doctor schedule");
-                return StatusCode(500, new { message = "Internal server error" });
-            }
-        }
-
-        [HttpPut("{scheduleId}")]
-        /*[Authorize(Roles = "Doctor,Admin")]*/
-        public async Task<IActionResult> UpdateSchedule(int scheduleId, [FromBody] UpdateDoctorScheduleDTO scheduleDTO)
-        {
-            try
-            {
-                
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-
-                var currentSchedule = await _scheduleService.GetScheduleByIdAsync(scheduleId);
-                if (userRole == "Doctor" && userId != currentSchedule.DoctorId)
-                {
-                    return Forbid("Doctors can only update their own schedules");
-                }
-
-                var updatedSchedule = await _scheduleService.UpdateScheduleAsync(scheduleId, scheduleDTO);
-                return Ok(updatedSchedule);
-            }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new { message = ex.Message });
-            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error updating schedule {scheduleId}");
-                return StatusCode(500, new { message = "Internal server error" });
-            }
-        }
-
-        [HttpDelete("{scheduleId}")]
-        /*[Authorize(Roles = "Doctor,Admin")]*/
-        public async Task<IActionResult> DeleteSchedule(int scheduleId)
-        {
-            try
-            {
-                
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-
-                var currentSchedule = await _scheduleService.GetScheduleByIdAsync(scheduleId);
-                if (userRole == "Doctor" && userId != currentSchedule.DoctorId)
-                {
-                    return Forbid("Doctors can only delete their own schedules");
-                }
-
-                var result = await _scheduleService.DeleteScheduleAsync(scheduleId);
-                return Ok(new { success = result });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error deleting schedule {scheduleId}");
+                _logger.LogError(ex, "Lỗi khi tạo lịch làm việc");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }
@@ -212,26 +73,61 @@ namespace HealthChildTracker_API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting available slots for schedule {scheduleId}");
+                _logger.LogError(ex, $"Lỗi khi lấy các slot cho lịch {scheduleId}");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }
 
-        [HttpGet("{scheduleId}/slots/{slotTime}/available")]
-        public async Task<IActionResult> IsSlotAvailable(int scheduleId, TimeOnly slotTime)
+        
+
+        [HttpGet("slots/default")]
+        [AllowAnonymous]
+        public IActionResult GetDefaultTimeSlots()
         {
             try
             {
-                var isAvailable = await _scheduleService.IsSlotAvailableAsync(scheduleId, slotTime);
-                return Ok(new { isAvailable });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
+                var slots = _scheduleService.GetDefaultTimeSlots();
+                return Ok(slots);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error checking if slot {slotTime} is available for schedule {scheduleId}");
+                _logger.LogError(ex, "Lỗi khi lấy danh sách slot mặc định");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        [HttpGet("doctor/{doctorId}/week")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetDoctorSchedulesByWeek(
+            int doctorId,
+            [FromQuery] string weekStart)
+        {
+            try
+            {
+                // Parse weekStart từ string sang DateOnly
+                if (!DateOnly.TryParseExact(weekStart, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out DateOnly startDate))
+                {
+                    return BadRequest(new { message = "Ngày bắt đầu tuần không đúng định dạng (yyyy-MM-dd)" });
+                }
+
+                // Đảm bảo ngày bắt đầu là thứ 2
+                while (startDate.DayOfWeek != DayOfWeek.Monday)
+                {
+                    startDate = startDate.AddDays(-1);
+                }
+
+                var schedules = await _scheduleService.GetDoctorSchedulesByWeekAsync(doctorId, startDate);
+                return Ok(new
+                {
+                    doctorId = doctorId,
+                    weekStart = startDate.ToString("yyyy-MM-dd"),
+                    weekEnd = startDate.AddDays(4).ToString("yyyy-MM-dd"), // Thứ 6
+                    schedules = schedules
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lấy lịch làm việc của bác sĩ {doctorId}");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }

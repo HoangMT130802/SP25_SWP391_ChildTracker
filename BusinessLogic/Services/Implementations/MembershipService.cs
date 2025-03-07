@@ -106,7 +106,7 @@ namespace BusinessLogic.Services.Implementations
         }
 
 
-        // 
+        // Quản lý trạng thái gói của Usermembership
         public async Task<bool> UserMembershipStatus(int userMembershipId, bool newStatus, int userId)
         {
             // Kiểm tra user có quyền admin không
@@ -130,6 +130,46 @@ namespace BusinessLogic.Services.Implementations
             return true;
         }
 
+        // nâng cấp gói
+        public async Task<bool> UpgradeMembership(int userMembershipId)
+        {
+            try
+            {
+                var userMembership = await _userMembershipRepository.GetByIdAsync(userMembershipId);
+                if (userMembership == null)
+                {
+                    throw new Exception("Không tìm thấy UserMembership.");
+                }
+                // Kiểm tra có đang ở gói Standard không
+                if (userMembership.MembershipId != 1)
+                {
+                    throw new Exception("Chỉ có thể nâng cấp từ Gói Standard lên Gói VIP.");
+                }
+                // Lấy thông tin gói VIP
+                var vipMembership = _fixedMemberships.FirstOrDefault(m => m.MembershipId == 2);
+                if (vipMembership == null)
+                {
+                    throw new Exception("Không tìm thấy gói VIP.");
+                }
+                // TODO: hàm thanh
+                userMembership.MembershipId = vipMembership.MembershipId;
+                userMembership.RemainingConsultations = vipMembership.MaxConsultations;
+
+                // Cập nhật thời gian
+                userMembership.StartDate = DateTime.UtcNow;
+                userMembership.EndDate = userMembership.StartDate.AddDays(vipMembership.Duration);
+
+                // Lưu thay đổi
+                _userMembershipRepository.Update(userMembership);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi khi nâng cấp membership: {ex.Message}");
+                return false;
+            }
+        }
     }
 }
 

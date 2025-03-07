@@ -78,5 +78,21 @@ namespace HealthChildTrackerAPI.Controllers
             }
         }
 
+        // nâng cấp gói
+        [HttpPut("upgrade/{userMembershipId}")]
+        public async Task<IActionResult> UpgradeMembership(int userMembershipId)
+        {
+            try
+            {
+                var success = await _membershipService.UpgradeMembership(userMembershipId);
+
+                if (!success) return BadRequest("Nâng cấp không thành công.");
+                return Ok("Nâng cấp Membership thành công.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

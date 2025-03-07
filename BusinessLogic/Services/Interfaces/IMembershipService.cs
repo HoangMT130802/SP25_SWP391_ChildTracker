@@ -13,5 +13,6 @@ namespace BusinessLogic.Services.Interfaces
         Task<bool> RegisterMembership(CreateUserMemebershipDTO userMembershipDto);
         Task<IEnumerable<UserMembershipDto>> ShowAllUserMemberships();
         Task<bool> UserMembershipStatus(int userMembershipId, bool newStatus, int userId);
+        Task<bool> UpgradeMembership(int userMembershipId);
     }
 }

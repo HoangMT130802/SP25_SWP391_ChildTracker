@@ -1,4 +1,4 @@
-using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace BusinessLogic.DTOs.Doctor_Schedule
 {
@@ -11,6 +11,6 @@ namespace BusinessLogic.DTOs.Doctor_Schedule
         public bool IsAvailable { get; set; }
         public bool IsCancelled { get; set; }
         public int? AppointmentId { get; set; }
-        public string Status { get; set; }
+        public string Status { get; set; } = "Available";
     }
 } 

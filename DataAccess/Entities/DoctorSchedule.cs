@@ -17,11 +17,11 @@ public partial class DoctorSchedule
 
     public TimeOnly EndTime { get; set; }
 
+    public string SelectedSlots { get; set; }
+
     public int SlotDuration { get; set; }
 
     public string Status { get; set; }
-
-    public string SelectedSlots { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; }
 

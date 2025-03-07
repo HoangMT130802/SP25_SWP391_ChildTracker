@@ -29,9 +29,7 @@ public partial class User
 
     public int UserId { get; set; }
 
-    public virtual ICollection<Appointment> AppointmentDoctors { get; set; } = new List<Appointment>();
-
-    public virtual ICollection<Appointment> AppointmentUsers { get; set; } = new List<Appointment>();
+    public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 
     public virtual ICollection<Blog> Blogs { get; set; } = new List<Blog>();
 

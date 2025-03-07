@@ -43,7 +43,6 @@ public partial class HealthChildTrackerContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserMembership> UserMemberships { get; set; }
-
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -54,8 +53,9 @@ public partial class HealthChildTrackerContext : DbContext
         string connectionString = config.GetConnectionString(connectionStringName);
         return connectionString;
     }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-         => optionsBuilder.UseSqlServer(GetConnectionString("DefaultConnection"));
+        => optionsBuilder.UseSqlServer(GetConnectionString("DefaultConnection"));
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Appointment>(entity =>
@@ -65,11 +65,13 @@ public partial class HealthChildTrackerContext : DbContext
             entity.Property(e => e.ChildId).HasColumnName("child_id");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Description).IsRequired();
-            entity.Property(e => e.DoctorId).HasColumnName("doctor_Id");
             entity.Property(e => e.MeetingLink)
                 .IsRequired()
                 .HasMaxLength(255);
             entity.Property(e => e.Note).IsRequired();
+            entity.Property(e => e.SlotTime)
+                .IsRequired()
+                .HasMaxLength(50);
             entity.Property(e => e.Status)
                 .IsRequired()
                 .HasMaxLength(50);
@@ -80,17 +82,12 @@ public partial class HealthChildTrackerContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("appointments_child_id_foreign");
 
-            entity.HasOne(d => d.Doctor).WithMany(p => p.AppointmentDoctors)
-                .HasForeignKey(d => d.DoctorId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Appointments_Users_DoctorId");
-
             entity.HasOne(d => d.Schedule).WithMany(p => p.Appointments)
                 .HasForeignKey(d => d.ScheduleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("appointments_scheduleid_foreign");
 
-            entity.HasOne(d => d.User).WithMany(p => p.AppointmentUsers)
+            entity.HasOne(d => d.User).WithMany(p => p.Appointments)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Appointments_Users_UserId");
@@ -246,6 +243,9 @@ public partial class HealthChildTrackerContext : DbContext
 
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.DoctorId).HasColumnName("doctor_id");
+            entity.Property(e => e.SelectedSlots)
+                .IsRequired()
+                .HasMaxLength(100);
             entity.Property(e => e.Status)
                 .IsRequired()
                 .HasMaxLength(50);

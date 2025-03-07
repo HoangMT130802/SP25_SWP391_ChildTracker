@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using BusinessLogic.DTOs.Appointment;
 using BusinessLogic.DTOs.Authentication;
 using BusinessLogic.DTOs.Children;
 using BusinessLogic.DTOs.ConsultationRequest;
@@ -13,20 +14,7 @@ namespace BusinessLogic.Mappers
 {
 public class MapperProfile : Profile
 {
-        private string GetFirstName(string fullName)
-        {
-            if (string.IsNullOrEmpty(fullName)) return string.Empty;
-            var parts = fullName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            return parts.Length > 0 ? parts[0] : string.Empty;
-        }
-
-        private string GetLastName(string fullName)
-        {
-            if (string.IsNullOrEmpty(fullName)) return string.Empty;
-            var parts = fullName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            return parts.Length > 1 ? string.Join(" ", parts.Skip(1)) : string.Empty;
-        }
-
+       
     public MapperProfile()
     {
             // User mappings
@@ -121,6 +109,51 @@ public class MapperProfile : Profile
         CreateMap<ConsultationResponse, ConsultationResponseDTO>();
         CreateMap<CreateConsultationRequestDTO, ConsultationRequest>();
         CreateMap<CreateConsultationResponseDTO, ConsultationResponse>();
-        }
+
+        // Appointment mappings
+        CreateMap<Appointment, AppointmentDTO>()
+            .ForMember(dest => dest.AppointmentId, opt => opt.MapFrom(src => src.AppointmentId))
+            .ForMember(dest => dest.ScheduleId, opt => opt.MapFrom(src => src.ScheduleId))
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.FullName))
+            .ForMember(dest => dest.ChildId, opt => opt.MapFrom(src => src.ChildId))
+            .ForMember(dest => dest.ChildName, opt => opt.MapFrom(src => src.Child.FullName))
+            .ForMember(dest => dest.DoctorId, opt => opt.MapFrom(src => src.Schedule.DoctorId))
+            .ForMember(dest => dest.DoctorName, opt => opt.MapFrom(src => src.Schedule.Doctor.FullName))
+            .ForMember(dest => dest.AppointmentDate, opt => opt.MapFrom(src => src.Schedule.WorkDate))
+            .ForMember(dest => dest.SlotTime, opt => opt.MapFrom(src => src.SlotTime))
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+            .ForMember(dest => dest.MeetingLink, opt => opt.MapFrom(src => src.MeetingLink))
+            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+            .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt));
+
+        CreateMap<CreateAppointmentDTO, Appointment>()
+            .ForMember(dest => dest.ScheduleId, opt => opt.MapFrom(src => src.ScheduleId))
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.ChildId, opt => opt.MapFrom(src => src.ChildId))
+            .ForMember(dest => dest.SlotTime, opt => opt.MapFrom(src => src.SlotTime))
+            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+            .ForMember(dest => dest.Note, opt => opt.MapFrom(src => src.Note))
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "Pending"))
+            .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+        // Authentication mappings
+        CreateMap<RegisterRequestDTO, User>()
+            .ForMember(dest => dest.Password, opt => opt.MapFrom(src => src.Password))
+            .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Username))
+            .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email))
+            .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.FullName))
+            .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone))
+            .ForMember(dest => dest.Address, opt => opt.MapFrom(src => src.Address))
+            .ForMember(dest => dest.Role, opt => opt.MapFrom(src => "User"));
+
+        CreateMap<User, UserResponseDTO>()
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Username))
+            .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email))
+            .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.FullName))
+            .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone))
+            .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role));
     }
+}
 }

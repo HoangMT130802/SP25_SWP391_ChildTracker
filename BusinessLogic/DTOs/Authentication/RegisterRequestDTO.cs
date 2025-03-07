@@ -14,7 +14,7 @@ namespace BusinessLogic.DTOs.Authentication
         public string Username { get; set; }
 
         [Required(ErrorMessage = "Password không được để trống")]
-        [StringLength(50, MinimumLength = 6, ErrorMessage = "Password phải từ 6-50 ký tự")]
+        [MinLength(6, ErrorMessage = "Password phải có ít nhất 6 ký tự")]
         public string Password { get; set; }
 
         [Required(ErrorMessage = "Email không được để trống")]

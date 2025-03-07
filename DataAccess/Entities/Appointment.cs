@@ -13,11 +13,9 @@ public partial class Appointment
 
     public int UserId { get; set; }
 
-    public int DoctorId { get; set; }
-
     public int ChildId { get; set; }
 
-    public TimeOnly SlotTime { get; set; }
+    public string SlotTime { get; set; }
 
     public string Status { get; set; }
 
@@ -30,8 +28,6 @@ public partial class Appointment
     public DateTime CreatedAt { get; set; }
 
     public virtual Child Child { get; set; }
-
-    public virtual User Doctor { get; set; }
 
     public virtual ICollection<Rating> Ratings { get; set; } = new List<Rating>();
 

@@ -362,7 +362,7 @@ namespace BusinessLogic.Services.Implementations
                 var slots = new List<TimeSlotDTO>();
                 foreach (var slot in selectedSlots)
                 {
-                    var appointment = appointments.FirstOrDefault(a => a.SlotTime == slot.StartTime);
+                    var appointment = appointments.FirstOrDefault(a => a.SlotTime == slot.SlotId.ToString());
                     slots.Add(new TimeSlotDTO
                     {
                         SlotId = slot.SlotId,
@@ -436,7 +436,16 @@ namespace BusinessLogic.Services.Implementations
 
         public async Task<IEnumerable<TimeSlotDTO>> GetAvailableSlotsAsync(int scheduleId)
         {
-            return await CalculateAvailableSlotsAsync(scheduleId);
+            try
+            {
+                var slots = await CalculateAvailableSlotsAsync(scheduleId);
+                return slots ?? new List<TimeSlotDTO>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lấy danh sách slot cho lịch {scheduleId}");
+                return new List<TimeSlotDTO>();
+            }
         }
 
         public async Task<bool> IsSlotAvailableAsync(int scheduleId, TimeOnly slotTime)

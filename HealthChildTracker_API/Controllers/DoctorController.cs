@@ -19,7 +19,7 @@ namespace HealthChildTracker_API.Controllers
             _logger = logger;
         }
 
-        [HttpGet]
+        [HttpGet("Get all doctors")]
         [AllowAnonymous]
         public async Task<IActionResult> GetAllDoctors()
         {
@@ -35,7 +35,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpGet("{doctorId}")]
+        [HttpGet("{userId}/get Doctor by userId")]
         [AllowAnonymous]
         public async Task<IActionResult> GetDoctorById(int doctorId)
         {
@@ -55,7 +55,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("{DoctorId}/Create new doctor")]
         /*[Authorize(Roles = "Admin")] */
         [AllowAnonymous]
         public async Task<IActionResult> CreateDoctor([FromBody] CreateDoctorDTO doctorDTO)
@@ -76,7 +76,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpPut("{doctorId}")]
+        [HttpPut("{userId}/update doctor by userId")]
         /*[Authorize(Roles = "Admin")] */
         [AllowAnonymous]
         public async Task<IActionResult> UpdateDoctor(int doctorId, [FromBody] UpdateDoctorDTO doctorDTO)

@@ -87,6 +87,7 @@ namespace BusinessLogic.Services.Implementations
                 var newUser = _mapper.Map<User>(request);
                 newUser.CreatedAt = DateTime.UtcNow;
                 newUser.UpdatedAt = DateTime.UtcNow;
+                newUser.Status = true; // Mặc định active
 
                 await userRepository.AddAsync(newUser);
                 await _unitOfWork.SaveChangesAsync();
@@ -147,11 +148,6 @@ namespace BusinessLogic.Services.Implementations
             {
                 return false;
             }
-        }
-
-        private string HashPassword(string password)
-        {            
-            return password; 
         }
     }
 

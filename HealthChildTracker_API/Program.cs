@@ -6,6 +6,7 @@ using DataAccess.UnitOfWork;
 using DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,24 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new DateTimeConverters.DateOnlyJsonConverter());
         options.JsonSerializerOptions.Converters.Add(new DateTimeConverters.TimeOnlyJsonConverter());
     });
+
+// Thêm cấu hình Session
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // Thời gian session timeout
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+builder.Services.AddAuthentication("CookieAuth")
+    .AddCookie("CookieAuth", options =>
+    {
+        options.Cookie.Name = "UserLoginCookie";
+        options.LoginPath = "/api/Auth/Login";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -32,8 +51,10 @@ builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IDoctorScheduleService, DoctorScheduleService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IGrowthAssessmentService, GrowthAssessmentService>();
+
 // Đăng ký automapper
 builder.Services.AddAutoMapper(typeof(MapperProfile));
+
 // cấu hình cors
 builder.Services.AddCors(options =>
 {
@@ -59,8 +80,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
 
+// Thêm middleware Session
+app.UseSession();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
 
 app.Run();

@@ -19,7 +19,7 @@ namespace HealthChildTracker_API.Controllers
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        [HttpGet("user/{userId}")]
+        [HttpGet("{userId}/Get children by userId")]
         public async Task<IActionResult> GetAllChildrenByUserId(int userId)
         {
             try
@@ -34,7 +34,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpGet("{childId}/user/{userId}")]
+        [HttpGet("{childId}/user/{userId}/Get child by childId")]
         public async Task<IActionResult> GetChildById(int childId, int userId)
         {
             try
@@ -53,7 +53,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpPost("user/{userId}")]
+        [HttpPost("user/{userId}/Create new child")]
         public async Task<IActionResult> CreateChild(int userId, [FromBody] CreateChildDTO childDTO)
         {
             try
@@ -68,7 +68,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpPut("{childId}/user/{userId}")]
+        [HttpPut("{childId}/user/{userId}/Update child")]
         public async Task<IActionResult> UpdateChild(int childId, int userId, [FromBody] UpdateChildDTO childDTO)
         {
             try

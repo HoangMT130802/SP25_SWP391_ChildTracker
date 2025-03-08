@@ -285,5 +285,48 @@ namespace BusinessLogic.Services.Implementations
                 throw;
             }
         }
+
+      
+        public async Task<AppointmentDTO> CompleteAppointmentAsync(int appointmentId)
+        {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                var appointmentRepository = _unitOfWork.GetRepository<Appointment>();
+                var appointment = await appointmentRepository.GetAsync(
+                    a => a.AppointmentId == appointmentId,
+                    includeProperties: "User,Child,Schedule,Schedule.Doctor"
+                );
+
+                if (appointment == null)
+                {
+                    throw new KeyNotFoundException($"Không tìm thấy lịch hẹn với ID {appointmentId}");
+                }
+
+                if (appointment.Status == "Cancelled")
+                {
+                    throw new InvalidOperationException("Không thể hoàn thành lịch hẹn đã hủy");
+                }
+
+                if (appointment.Status == "Completed")
+                {
+                    throw new InvalidOperationException("Lịch hẹn đã được hoàn thành trước đó");
+                }
+
+                appointment.Status = "Completed";
+                appointmentRepository.Update(appointment);
+                await _unitOfWork.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return _mapper.Map<AppointmentDTO>(appointment);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, $"Lỗi khi hoàn thành lịch hẹn {appointmentId}");
+                throw;
+            }
+        }
     }
 } 

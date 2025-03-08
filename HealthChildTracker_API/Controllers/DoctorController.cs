@@ -20,7 +20,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpGet("Get all doctors")]
-        [AllowAnonymous]
+       
         public async Task<IActionResult> GetAllDoctors()
         {
             try
@@ -36,7 +36,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpGet("{userId}/get Doctor by userId")]
-        [AllowAnonymous]
+        
         public async Task<IActionResult> GetDoctorById(int doctorId)
         {
             try
@@ -56,8 +56,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpPost("{DoctorId}/Create new doctor")]
-        /*[Authorize(Roles = "Admin")] */
-        [AllowAnonymous]
+       
         public async Task<IActionResult> CreateDoctor([FromBody] CreateDoctorDTO doctorDTO)
         {
             try
@@ -77,8 +76,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpPut("{userId}/update doctor by userId")]
-        /*[Authorize(Roles = "Admin")] */
-        [AllowAnonymous]
+        
         public async Task<IActionResult> UpdateDoctor(int doctorId, [FromBody] UpdateDoctorDTO doctorDTO)
         {
             try
@@ -101,24 +99,28 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpDelete("{doctorId}")]
-        /*[Authorize(Roles = "Admin")] */
-        [AllowAnonymous]
-        public async Task<IActionResult> DeleteDoctor(int doctorId)
+        [HttpPut("{doctorId}/Change verification")]
+        
+        public async Task<IActionResult> ToggleVerification(int doctorId)
         {
             try
             {
-                var result = await _doctorService.DeleteDoctorAsync(doctorId);
-                return Ok(new { success = result });
+                var isVerified = await _doctorService.ToggleDoctorVerification(doctorId);
+                var message = isVerified ? "Xác thực bác sĩ thành công" : "Hủy xác thực bác sĩ thành công";
+                return Ok(new { success = true, isVerified = isVerified, message = message });
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error deleting doctor {doctorId}");
-                return StatusCode(500, new { message = "Internal server error" });
+                _logger.LogError(ex, $"Lỗi khi thay đổi trạng thái xác thực bác sĩ {doctorId}");
+                return StatusCode(500, new { message = "Đã xảy ra lỗi trong quá trình xử lý" });
             }
         }
     }

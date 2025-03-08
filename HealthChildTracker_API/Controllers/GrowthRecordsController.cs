@@ -33,7 +33,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpGet("{recordId}")]
+        [HttpGet("Get {recordId}")]
         public async Task<IActionResult> GetGrowthRecordById(int recordId)
         {
             try
@@ -52,7 +52,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("Create new record")]
         public async Task<IActionResult> CreateGrowthRecord([FromBody] CreateGrowthRecordDTO recordDTO)
         {
             try
@@ -71,7 +71,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpPut("{recordId}")]
+        [HttpPut("{recordId}/Update record")]
         public async Task<IActionResult> UpdateGrowthRecord(int recordId, [FromBody] UpdateGrowthRecordDTO recordDTO)
         {
             try
@@ -90,7 +90,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpDelete("{recordId}")]
+        [HttpDelete("{recordId}/Delete")]
         public async Task<IActionResult> DeleteGrowthRecord(int recordId)
         {
             try

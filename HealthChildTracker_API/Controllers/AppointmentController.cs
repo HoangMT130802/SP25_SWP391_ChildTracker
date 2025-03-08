@@ -23,7 +23,7 @@ namespace HealthChildTracker_API.Controllers
             _logger = logger;
         }
 
-        [HttpGet("user/{userId}")]
+        [HttpGet("Get information about the appoinment by/{userId}")]
         public async Task<IActionResult> GetUserAppointments(int userId)
         {
             try
@@ -39,7 +39,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpGet("doctor/{doctorId}")]
+        [HttpGet("Get information about the appoinment by/{doctorId}")]
         public async Task<IActionResult> GetDoctorAppointments(int doctorId)
         {
             try
@@ -55,7 +55,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpGet("{appointmentId}")]
+        [HttpGet("Get information about the appoinment by/{appointmentId}")]
         public async Task<IActionResult> GetAppointmentById(int appointmentId)
         {
             try
@@ -80,7 +80,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("User create the appoinment")]
         public async Task<IActionResult> CreateAppointment([FromBody] CreateAppointmentDTO appointmentDTO)
         {
             try
@@ -128,7 +128,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpPost("{appointmentId}/cancel")]
+        [HttpPost("{appointmentId}/User cancel the appoinment")]
         public async Task<IActionResult> CancelAppointment(int appointmentId)
         {
             try
@@ -149,6 +149,33 @@ namespace HealthChildTracker_API.Controllers
             {
                 _logger.LogError(ex, $"Lỗi khi hủy lịch hẹn {appointmentId}");
                 return StatusCode(500, new { message = "Đã xảy ra lỗi khi hủy lịch hẹn" });
+            }
+        }
+
+      
+
+       
+
+        [HttpPost("{appointmentId}/Change status to completed")]
+        public async Task<IActionResult> CompleteAppointment(int appointmentId)
+        {
+            try
+            {
+                var result = await _appointmentService.CompleteAppointmentAsync(appointmentId);
+                return Ok(new { success = true, message = "Hoàn thành cuộc hẹn thành công", appointment = result });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi hoàn thành lịch hẹn {appointmentId}");
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi hoàn thành cuộc hẹn" });
             }
         }
     }

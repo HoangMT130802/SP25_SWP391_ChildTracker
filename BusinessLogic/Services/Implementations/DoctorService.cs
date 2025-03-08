@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace BusinessLogic.Services.Implementations
 {
@@ -185,29 +186,45 @@ namespace BusinessLogic.Services.Implementations
             }
         }
 
-        public async Task<bool> DeleteDoctorAsync(int doctorId)
+        public async Task<bool> ToggleDoctorVerification(int doctorId)
         {
             try
             {
                 var userRepository = _unitOfWork.GetRepository<User>();
-                var doctor = await userRepository.GetAsync(u => u.UserId == doctorId && u.Role == "Doctor");
+                var doctorProfileRepository = _unitOfWork.GetRepository<DoctorProfile>();
+
+                // Lấy thông tin bác sĩ
+                var doctor = await userRepository.GetAsync(
+                    u => u.UserId == doctorId && u.Role == "Doctor",
+                    includeProperties: "DoctorProfiles"
+                );
 
                 if (doctor == null)
                 {
                     throw new KeyNotFoundException($"Không tìm thấy bác sĩ với ID {doctorId}");
                 }
 
-                doctor.Status = false;
+                if (!doctor.DoctorProfiles.Any())
+                {
+                    throw new InvalidOperationException($"Bác sĩ với ID {doctorId} chưa có hồ sơ");
+                }
+
+                var doctorProfile = doctor.DoctorProfiles.First();
+
+                // Đảo ngược trạng thái xác thực
+                doctorProfile.IsVerified = !doctorProfile.IsVerified;
+                doctor.Status = doctorProfile.IsVerified;
                 doctor.UpdatedAt = DateTime.UtcNow;
 
+                doctorProfileRepository.Update(doctorProfile);
                 userRepository.Update(doctor);
                 await _unitOfWork.SaveChangesAsync();
 
-                return true;
+                return doctorProfile.IsVerified;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Lỗi khi xóa bác sĩ {doctorId}");
+                _logger.LogError(ex, $"Lỗi khi cập nhật trạng thái xác thực của bác sĩ {doctorId}");
                 throw;
             }
         }

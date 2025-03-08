@@ -59,7 +59,7 @@ namespace BusinessLogic.Services.Implementations
             {
                 var scheduleRepository = _unitOfWork.GetRepository<DoctorSchedule>();
                 var schedules = await scheduleRepository.GetAllAsync(includeProperties: "Doctor");
-                
+
                 var scheduleDTOs = _mapper.Map<IEnumerable<DoctorScheduleDTO>>(schedules);
                 foreach (var scheduleDTO in scheduleDTOs)
                 {

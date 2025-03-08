@@ -270,7 +270,7 @@ namespace BusinessLogic.Services.Implementations
                 {
                     throw new InvalidOperationException("Bạn đã hủy một cuộc hẹn khác trong ngày này");
                 }
-                
+
                 appointment.Status = "Cancelled";
                 appointmentRepository.Update(appointment);
                 await _unitOfWork.SaveChangesAsync();
@@ -329,4 +329,4 @@ namespace BusinessLogic.Services.Implementations
             }
         }
     }
-} 
+}

@@ -23,7 +23,7 @@ namespace HealthChildTracker_API.Controllers
             _logger = logger;
         }
 
-        [HttpGet("Get information about the appoinment by/{userId}")]
+        [HttpGet("GetAppoinmentBy/{userId}")]
         public async Task<IActionResult> GetUserAppointments(int userId)
         {
             try
@@ -39,7 +39,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpGet("Get information about the appoinment by/{doctorId}")]
+        [HttpGet("GetAppoinmentBy/{doctorId}")]
         public async Task<IActionResult> GetDoctorAppointments(int doctorId)
         {
             try
@@ -55,7 +55,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpGet("Get information about the appoinment by/{appointmentId}")]
+        [HttpGet("GetAppoinmentBy/{appointmentId}")]
         public async Task<IActionResult> GetAppointmentById(int appointmentId)
         {
             try

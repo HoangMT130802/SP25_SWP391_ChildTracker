@@ -25,12 +25,31 @@ namespace HealthChildTracker_API.Controllers
 
         private int? GetCurrentUserId()
         {
-            var userIdClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            try
             {
+                var userIdClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                _logger.LogInformation($"User claims: {string.Join(", ", User?.Claims?.Select(c => $"{c.Type}: {c.Value}"))}");
+                
+                if (string.IsNullOrEmpty(userIdClaim))
+                {
+                    _logger.LogWarning("User ID claim not found");
+                    return null;
+                }
+
+                if (!int.TryParse(userIdClaim, out int userId))
+                {
+                    _logger.LogWarning($"Failed to parse user ID: {userIdClaim}");
+                    return null;
+                }
+
+                _logger.LogInformation($"Successfully retrieved user ID: {userId}");
+                return userId;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting current user ID");
                 return null;
             }
-            return userId;
         }
 
         [HttpPost("request")]
@@ -63,10 +82,15 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
+                // Log request headers
+                _logger.LogInformation($"Authorization header: {Request.Headers["Authorization"]}");
+                _logger.LogInformation($"Request for consultation ID: {requestId}");
+
                 var userId = GetCurrentUserId();
                 if (!userId.HasValue)
                 {
-                    return Unauthorized(new { message = "Không thể xác thực người dùng" });
+                    _logger.LogWarning("Unauthorized access attempt - no valid user ID");
+                    return Unauthorized(new { message = "Không thể xác thực người dùng. Vui lòng đăng nhập lại." });
                 }
 
                 var request = await _consultationService.GetRequestByIdAsync(requestId, userId.Value);
@@ -74,16 +98,18 @@ namespace HealthChildTracker_API.Controllers
             }
             catch (KeyNotFoundException ex)
             {
+                _logger.LogWarning(ex, $"Consultation request {requestId} not found");
                 return NotFound(new { message = ex.Message });
             }
             catch (UnauthorizedAccessException ex)
             {
+                _logger.LogWarning(ex, $"Unauthorized access to consultation {requestId}");
                 return Forbid(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi lấy thông tin yêu cầu tư vấn");
-                return StatusCode(500, new { message = "Lỗi server" });
+                _logger.LogError(ex, $"Error retrieving consultation request {requestId}");
+                return StatusCode(500, new { message = "Lỗi server khi xử lý yêu cầu" });
             }
         }
 

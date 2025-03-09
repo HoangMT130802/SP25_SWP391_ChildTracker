@@ -146,10 +146,6 @@ namespace BusinessLogic.Mappers
                     src.DoctorProfiles != null && src.DoctorProfiles.Any() 
                         ? src.DoctorProfiles.First().Experience.ToString() 
                         : "0"))
-                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => 
-                    src.DoctorProfiles != null && src.DoctorProfiles.Any() 
-                        ? src.DoctorProfiles.First().Biography 
-                        : null))
                 .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => 
                     src.DoctorProfiles != null && src.DoctorProfiles.Any() 
                         ? (double)src.DoctorProfiles.First().AverageRating 

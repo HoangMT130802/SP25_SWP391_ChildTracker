@@ -33,9 +33,5 @@ namespace BusinessLogic.DTOs.Authentication
         [StringLength(200, ErrorMessage = "Địa chỉ không được vượt quá 200 ký tự")]
         public string Address { get; set; }
 
-        [Required(ErrorMessage = "Vai trò không được để trống")]
-        public string Role { get; set; } = "User";
-
-        public bool Status { get; set; } = true;
     }
 }

@@ -357,7 +357,8 @@ namespace BusinessLogic.Services.Implementations
                     IsFromUser = false,
                     IsQuestion = false,
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    UpdatedAt = DateTime.UtcNow,
+                    Attachments = ""
                 });
 
                 await _unitOfWork.SaveChangesAsync();

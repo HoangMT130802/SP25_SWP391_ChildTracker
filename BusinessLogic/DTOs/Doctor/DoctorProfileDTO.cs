@@ -18,6 +18,5 @@ namespace BusinessLogic.DTOs.Doctor
         public double Rating { get; set; }
         public int ConsultationCount { get; set; }
         public bool IsAvailable { get; set; }
-        public string WorkingHours { get; set; }
     }
 }

@@ -43,7 +43,6 @@ public partial class HealthChildTrackerContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserMembership> UserMemberships { get; set; }
-
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -199,7 +198,6 @@ public partial class HealthChildTrackerContext : DbContext
         {
             entity.HasKey(e => e.ResponseId).HasName("consultationresponses_responseid_primary");
 
-            entity.Property(e => e.Attachments).IsRequired();
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Response).IsRequired();
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");

@@ -3,11 +3,13 @@ using BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HealthChildTracker_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ChildrenController : ControllerBase
     {
         private readonly IChildService _childService;
@@ -19,11 +21,26 @@ namespace HealthChildTracker_API.Controllers
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        private bool ValidateUserAccess(int userId)
+        {
+            var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(currentUserIdClaim) || !int.TryParse(currentUserIdClaim, out int currentUserId))
+            {
+                return false;
+            }
+            return currentUserId == userId || User.IsInRole("Admin");
+        }
+
         [HttpGet("{userId}/Get children by userId")]
         public async Task<IActionResult> GetAllChildrenByUserId(int userId)
         {
             try
             {
+                if (!ValidateUserAccess(userId))
+                {
+                    return Forbid("Bạn không có quyền xem thông tin này");
+                }
+
                 var children = await _childService.GetAllChildrenByUserIdAsync(userId);
                 return Ok(children);
             }
@@ -39,6 +56,11 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
+                if (!ValidateUserAccess(userId))
+                {
+                    return Forbid("Bạn không có quyền xem thông tin này");
+                }
+
                 var child = await _childService.GetChildByIdAsync(childId, userId);
                 return Ok(child);
             }
@@ -58,6 +80,11 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
+                if (!ValidateUserAccess(userId))
+                {
+                    return Forbid("Bạn không có quyền thực hiện hành động này");
+                }
+
                 var child = await _childService.CreateChildAsync(userId, childDTO);
                 return CreatedAtAction(nameof(GetChildById), new { childId = child.ChildId, userId }, child);
             }
@@ -73,6 +100,11 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
+                if (!ValidateUserAccess(userId))
+                {
+                    return Forbid("Bạn không có quyền thực hiện hành động này");
+                }
+
                 var child = await _childService.UpdateChildAsync(childId, userId, childDTO);
                 return Ok(child);
             }
@@ -92,6 +124,11 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
+                if (!ValidateUserAccess(userId))
+                {
+                    return Forbid("Bạn không có quyền thực hiện hành động này");
+                }
+
                 var result = await _childService.SoftDeleteChildAsync(childId, userId);
                 return Ok(new { success = result });
             }
@@ -105,16 +142,16 @@ namespace HealthChildTracker_API.Controllers
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }
+
         [HttpDelete("harddelete/{childId}/user/{userId}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> HardDeleteChild(int childId, int userId)
         {
             try
             {
-                
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (currentUserId == null || int.Parse(currentUserId) != userId)
+                if (!ValidateUserAccess(userId))
                 {
-                    return Forbid("You don't have permission to delete this child record");
+                    return Forbid("Bạn không có quyền thực hiện hành động này");
                 }
 
                 var result = await _childService.HardDeleteChildAsync(childId, userId);

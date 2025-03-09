@@ -3,11 +3,13 @@ using BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace HealthChildTracker_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class DoctorsController : ControllerBase
     {
         private readonly IDoctorService _doctorService;
@@ -19,7 +21,7 @@ namespace HealthChildTracker_API.Controllers
             _logger = logger;
         }
 
-        [HttpGet("Get all doctors")]
+        [HttpGet]
        
         public async Task<IActionResult> GetAllDoctors()
         {
@@ -35,8 +37,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpGet("{userId}/get Doctor by userId")]
-        
+        [HttpGet("{doctorId}")]
         public async Task<IActionResult> GetDoctorById(int doctorId)
         {
             try
@@ -55,8 +56,8 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpPost("{DoctorId}/Create new doctor")]
-       
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateDoctor([FromBody] CreateDoctorDTO doctorDTO)
         {
             try
@@ -75,12 +76,20 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpPut("{userId}/update doctor by userId")]
-        
-        public async Task<IActionResult> UpdateDoctor(int doctorId, [FromBody] UpdateDoctorDTO doctorDTO)
+        [HttpPut("{doctorId}")]
+        [Authorize(Roles = "Admin,Doctor")]
+        public async Task<IActionResult> UpdateDoctor([FromRoute] int doctorId, [FromBody] UpdateDoctorDTO doctorDTO)
         {
             try
             {
+                var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!User.IsInRole("Admin") && 
+                    (string.IsNullOrEmpty(currentUserIdClaim) || 
+                    int.Parse(currentUserIdClaim) != doctorId))
+                {
+                    return Forbid("Bạn không có quyền cập nhật thông tin này");
+                }
+
                 var doctor = await _doctorService.UpdateDoctorAsync(doctorId, doctorDTO);
                 return Ok(doctor);
             }
@@ -99,8 +108,8 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpPut("{doctorId}/Change verification")]
-        
+        [HttpPut("{doctorId}/verify")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ToggleVerification(int doctorId)
         {
             try

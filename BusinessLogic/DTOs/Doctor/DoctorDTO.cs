@@ -25,7 +25,6 @@ namespace BusinessLogic.DTOs.Doctor
         public string Specialization { get; set; }
         public string Qualification { get; set; }
         public string LicenseNumber { get; set; }
-        public string WorkPlace { get; set; }
         public string Experience { get; set; }
         public string Description { get; set; }
         public double Rating { get; set; }

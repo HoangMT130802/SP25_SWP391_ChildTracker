@@ -9,6 +9,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,7 +42,57 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
-        ClockSkew = TimeSpan.Zero
+        ClockSkew = TimeSpan.Zero,
+        ValidateLifetime = true,
+        RequireExpirationTime = true,
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var authHeader = context.Request.Headers["Authorization"].ToString();
+            if (!string.IsNullOrEmpty(authHeader))
+            {
+                // Nếu header không bắt đầu bằng "Bearer ", thêm vào
+                if (!authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Token = authHeader.Trim();
+                }
+                else
+                {
+                    context.Token = authHeader.Substring("Bearer ".Length).Trim();
+                }
+                Console.WriteLine($"Token processed: {!string.IsNullOrEmpty(context.Token)}");
+            }
+            return Task.CompletedTask;
+        },
+        OnAuthenticationFailed = context =>
+        {
+            Console.WriteLine($"OnAuthenticationFailed: {context.Exception.Message}");
+            Console.WriteLine($"Exception type: {context.Exception.GetType().Name}");
+            Console.WriteLine($"Stack trace: {context.Exception.StackTrace}");
+            return Task.CompletedTask;
+        },
+        OnTokenValidated = context =>
+        {
+            var token = context.SecurityToken as JwtSecurityToken;
+            if (token != null)
+            {
+                Console.WriteLine($"Token validation successful. Claims count: {token.Claims.Count()}");
+                foreach (var claim in token.Claims)
+                {
+                    Console.WriteLine($"Claim: {claim.Type} = {claim.Value}");
+                }
+            }
+            return Task.CompletedTask;
+        },
+        OnChallenge = context =>
+        {
+            Console.WriteLine($"OnChallenge: {context.Error}, {context.ErrorDescription}");
+            context.Response.Headers.Add("Token-Error", "Invalid token or no token provided");
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -89,6 +140,7 @@ builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IDoctorScheduleService, DoctorScheduleService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IGrowthAssessmentService, GrowthAssessmentService>();
+builder.Services.AddScoped<IConsultationService, ConsultationService>();
 
 // Đăng ký automapper
 builder.Services.AddAutoMapper(typeof(MapperProfile));
@@ -113,6 +165,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.Use(async (context, next) =>
+{
+    Console.WriteLine($"Request path: {context.Request.Path}");
+    Console.WriteLine($"Authorization header: {context.Request.Headers["Authorization"]}");
+    await next();
+});
 
 app.UseHttpsRedirection();
 

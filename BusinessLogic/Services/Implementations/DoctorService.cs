@@ -110,9 +110,8 @@ namespace BusinessLogic.Services.Implementations
                     UserId = user.UserId,
                     Specialization = doctorDTO.Specialization,
                     Qualification = doctorDTO.Qualification,
-                    Biography = doctorDTO.Description,
-                    LicenseNumber = doctorDTO.LicenseNumber,
-                    Experience = 0,
+                    Biography = doctorDTO.Biography,
+                    LicenseNumber = doctorDTO.LicenseNumber,                               
                     AverageRating = 0,
                     TotalRatings = 0,
                     IsVerified = true
@@ -165,8 +164,9 @@ namespace BusinessLogic.Services.Implementations
                 {
                     profile.Specialization = doctorDTO.Specialization;
                     profile.Qualification = doctorDTO.Qualification;
-                    profile.Biography = doctorDTO.Description;
+                    profile.Biography = doctorDTO.Biography;
                     profile.LicenseNumber = doctorDTO.LicenseNumber;
+                    profile.Experience = doctorDTO.Experience;
                     profile.IsVerified = true;
 
                     profileRepository.Update(profile);

@@ -24,7 +24,6 @@ namespace BusinessLogic.DTOs.ConsultationRequest
         public int? AssignedDoctorId { get; set; }
 
         public virtual ChildDTO Child { get; set; }
-        public virtual UserDTO User { get; set; }
         public virtual UserDTO AssignedDoctor { get; set; }
         public virtual List<ConsultationResponseDTO> ConsultationResponses { get; set; }
     }

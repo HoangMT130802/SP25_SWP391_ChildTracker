@@ -53,6 +53,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpPost("request")]
+       
         public async Task<IActionResult> CreateRequest([FromBody] CreateConsultationRequestDTO request)
         {
             try
@@ -78,6 +79,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpGet("request/{requestId}")]
+        
         public async Task<IActionResult> GetRequest(int requestId)
         {
             try

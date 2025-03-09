@@ -32,23 +32,11 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Doctor")]
+        
         public async Task<IActionResult> CreateSchedule([FromBody] CreateDoctorScheduleDTO scheduleDTO)
         {
             try
             {
-                var currentUserId = GetCurrentUserId();
-                if (!currentUserId.HasValue)
-                {
-                    return Unauthorized(new { message = "Không thể xác thực bác sĩ" });
-                }
-
-                // Đảm bảo bác sĩ chỉ tạo lịch cho chính mình
-                if (currentUserId.Value != scheduleDTO.DoctorId)
-                {
-                    return Unauthorized(new { message = "Bác sĩ chỉ được tạo lịch cho chính mình" });
-                }
-
                 var createdSchedule = await _scheduleService.CreateScheduleAsync(scheduleDTO);
                 return Ok(createdSchedule);
             }

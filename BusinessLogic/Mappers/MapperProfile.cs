@@ -5,6 +5,7 @@ using BusinessLogic.DTOs.Children;
 using BusinessLogic.DTOs.ConsultationRequest;
 using BusinessLogic.DTOs.ConsultationResponse;
 using BusinessLogic.DTOs.Doctor;
+using BusinessLogic.DTOs.Doctor_Schedule;
 using BusinessLogic.DTOs.GrowthRecord;
 using BusinessLogic.DTOs.User;
 using DataAccess.Entities;
@@ -188,6 +189,32 @@ namespace BusinessLogic.Mappers
             CreateMap<CreateAppointmentDTO, Appointment>()
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "Pending"))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            // Doctor Schedule mappings
+            CreateMap<DoctorSchedule, DoctorScheduleDTO>()
+                .ForMember(dest => dest.ScheduleId, opt => opt.MapFrom(src => src.ScheduleId))
+                .ForMember(dest => dest.DoctorId, opt => opt.MapFrom(src => src.DoctorId))
+                .ForMember(dest => dest.WorkDate, opt => opt.MapFrom(src => src.WorkDate))
+                .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.StartTime))
+                .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.EndTime))
+                .ForMember(dest => dest.SlotDuration, opt => opt.MapFrom(src => src.SlotDuration))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt));
+
+            CreateMap<CreateDoctorScheduleDTO, DoctorSchedule>()
+                .ForMember(dest => dest.DoctorId, opt => opt.MapFrom(src => src.DoctorId))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "Available"))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.SlotDuration, opt => opt.MapFrom(src => 45));
+
+            CreateMap<UpdateDoctorScheduleDTO, DoctorSchedule>()
+                .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.StartTime))
+                .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.EndTime))
+                .ForMember(dest => dest.SlotDuration, opt => opt.MapFrom(src => src.SlotDuration))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
         }
     }
 }

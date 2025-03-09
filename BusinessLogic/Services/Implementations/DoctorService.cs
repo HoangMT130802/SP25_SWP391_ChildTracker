@@ -114,7 +114,7 @@ namespace BusinessLogic.Services.Implementations
                     LicenseNumber = doctorDTO.LicenseNumber,                               
                     AverageRating = 0,
                     TotalRatings = 0,
-                    IsVerified = true
+                    IsVerified = true,
                 };
 
                 await profileRepository.AddAsync(profile);

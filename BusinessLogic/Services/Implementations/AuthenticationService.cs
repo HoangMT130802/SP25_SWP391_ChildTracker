@@ -4,68 +4,55 @@ using BusinessLogic.Services.Interfaces;
 using DataAccess.Entities;
 using DataAccess.UnitOfWork;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Concurrent;
+using BC = BCrypt.Net.BCrypt;
 
 namespace BusinessLogic.Services.Implementations
 {
-    public class AuthService : IAuthService
+    public class AuthenticationService : IAuthenticationService
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        private readonly ILogger<AuthService> _logger;
-        private static readonly ConcurrentDictionary<string, UserSession> _sessions = new();
+        private readonly IJwtService _jwtService;
+        private readonly ILogger<AuthenticationService> _logger;
 
-        public AuthService(
+        public AuthenticationService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
-            ILogger<AuthService> logger)
+            IJwtService jwtService,
+            ILogger<AuthenticationService> logger)
         {
-            _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
+            _jwtService = jwtService;
+            _logger = logger;
         }
 
         public async Task<UserResponseDTO> LoginAsync(LoginRequestDTO request)
         {
             try
             {
-                if (string.IsNullOrEmpty(request.UsernameOrEmail) || string.IsNullOrEmpty(request.Password))
+                if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
                 {
-                    throw new ArgumentException("Username/email và mật khẩu không được để trống");
+                    throw new ArgumentException("Username và mật khẩu không được để trống");
                 }
 
                 var userRepository = _unitOfWork.GetRepository<User>();
-
                 var user = await userRepository.GetAsync(u =>
-                    (u.Username.ToLower() == request.UsernameOrEmail.ToLower() ||
-                     u.Email.ToLower() == request.UsernameOrEmail.ToLower())
-                    && u.Password == request.Password  // Nên hash password
-                    && u.Status == true);
+                    (u.Username.ToLower() == request.Username.ToLower() ||
+                     u.Email.ToLower() == request.Username.ToLower()));
 
-                if (user == null)
+                if (user == null || !BC.Verify(request.Password, user.Password))
                 {
                     throw new UnauthorizedAccessException("Thông tin đăng nhập không chính xác");
                 }
 
-                // Tạo session mới
-                var sessionId = Guid.NewGuid().ToString();
-                var session = new UserSession
+                if (!user.Status)
                 {
-                    UserId = user.UserId,
-                    Username = user.Username,
-                    Role = user.Role,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                _sessions.TryAdd(sessionId, session);
+                    throw new UnauthorizedAccessException("Tài khoản đã bị vô hiệu hóa");
+                }
 
                 var response = _mapper.Map<UserResponseDTO>(user);
-                response.SessionId = sessionId;
+                response.Token = _jwtService.GenerateToken(user);
 
                 _logger.LogInformation($"User {user.Username} logged in successfully");
                 return response;
@@ -83,17 +70,24 @@ namespace BusinessLogic.Services.Implementations
             {
                 await ValidateRegistrationRequest(request);
 
+                // Hash mật khẩu
+                var hashedPassword = BC.HashPassword(request.Password);
+                
                 var userRepository = _unitOfWork.GetRepository<User>();
                 var newUser = _mapper.Map<User>(request);
+                newUser.Password = hashedPassword;
                 newUser.CreatedAt = DateTime.UtcNow;
                 newUser.UpdatedAt = DateTime.UtcNow;
-                newUser.Status = true; // Mặc định active
+                newUser.Status = true;
 
                 await userRepository.AddAsync(newUser);
                 await _unitOfWork.SaveChangesAsync();
 
+                var response = _mapper.Map<UserResponseDTO>(newUser);
+                response.Token = _jwtService.GenerateToken(newUser);
+
                 _logger.LogInformation($"User {newUser.Username} registered successfully");
-                return _mapper.Map<UserResponseDTO>(newUser);
+                return response;
             }
             catch (Exception ex)
             {
@@ -102,17 +96,7 @@ namespace BusinessLogic.Services.Implementations
             }
         }
 
-        public async Task<bool> LogoutAsync(string sessionId)
-        {
-            if (string.IsNullOrEmpty(sessionId))
-            {
-                return false;
-            }
-
-            return _sessions.TryRemove(sessionId, out _);
-        }
-
-        public async Task ValidateRegistrationRequest(RegisterRequestDTO request)
+        private async Task ValidateRegistrationRequest(RegisterRequestDTO request)
         {
             var userRepository = _unitOfWork.GetRepository<User>();
 
@@ -126,12 +110,16 @@ namespace BusinessLogic.Services.Implementations
                 throw new ArgumentException("Email không hợp lệ");
             }
 
-            if (await userRepository.AnyAsync(u => u.Username.ToLower() == request.Username.ToLower()))
+            var existingUsername = await userRepository.GetAsync(u => 
+                u.Username.ToLower() == request.Username.ToLower());
+            if (existingUsername != null)
             {
                 throw new InvalidOperationException("Username đã tồn tại");
             }
 
-            if (await userRepository.AnyAsync(u => u.Email.ToLower() == request.Email.ToLower()))
+            var existingEmail = await userRepository.GetAsync(u => 
+                u.Email.ToLower() == request.Email.ToLower());
+            if (existingEmail != null)
             {
                 throw new InvalidOperationException("Email đã tồn tại");
             }
@@ -149,13 +137,5 @@ namespace BusinessLogic.Services.Implementations
                 return false;
             }
         }
-    }
-
-    public class UserSession
-    {
-        public int UserId { get; set; }
-        public string Username { get; set; }
-        public string Role { get; set; }
-        public DateTime CreatedAt { get; set; }
     }
 }

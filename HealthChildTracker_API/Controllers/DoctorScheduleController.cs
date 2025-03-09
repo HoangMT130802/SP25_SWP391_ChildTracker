@@ -9,7 +9,7 @@ namespace HealthChildTracker_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    
+    [Authorize]
     public class DoctorScheduleController : ControllerBase
     {
         private readonly IDoctorScheduleService _scheduleService;
@@ -21,24 +21,32 @@ namespace HealthChildTracker_API.Controllers
             _logger = logger;
         }
 
+        private int? GetCurrentUserId()
+        {
+            var userIdClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return null;
+            }
+            return userId;
+        }
+
         [HttpPost]
-        [AllowAnonymous]
+        [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> CreateSchedule([FromBody] CreateDoctorScheduleDTO scheduleDTO)
         {
             try
             {
-                // Kiểm tra xác thực nếu có
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-                var userRoleClaim = User.FindFirst(ClaimTypes.Role);
-
-                // Nếu user đã đăng nhập và là bác sĩ
-                if (userIdClaim != null && userRoleClaim?.Value == "Doctor")
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
                 {
-                    var userId = int.Parse(userIdClaim.Value);
-                    if (userId != scheduleDTO.DoctorId)
-                    {
-                        return Forbid("Bác sĩ chỉ được tạo lịch cho chính mình");
-                    }
+                    return Unauthorized(new { message = "Không thể xác thực bác sĩ" });
+                }
+
+                // Đảm bảo bác sĩ chỉ tạo lịch cho chính mình
+                if (currentUserId.Value != scheduleDTO.DoctorId)
+                {
+                    return Unauthorized(new { message = "Bác sĩ chỉ được tạo lịch cho chính mình" });
                 }
 
                 var createdSchedule = await _scheduleService.CreateScheduleAsync(scheduleDTO);
@@ -60,6 +68,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpGet("{scheduleId}/slots")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAvailableSlots(int scheduleId)
         {
             try
@@ -77,8 +86,6 @@ namespace HealthChildTracker_API.Controllers
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }
-
-        
 
         [HttpGet("slots/default")]
         [AllowAnonymous]
@@ -104,13 +111,11 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                // Parse weekStart từ string sang DateOnly
                 if (!DateOnly.TryParseExact(weekStart, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out DateOnly startDate))
                 {
                     return BadRequest(new { message = "Ngày bắt đầu tuần không đúng định dạng (yyyy-MM-dd)" });
                 }
 
-                // Đảm bảo ngày bắt đầu là thứ 2
                 while (startDate.DayOfWeek != DayOfWeek.Monday)
                 {
                     startDate = startDate.AddDays(-1);
@@ -121,7 +126,7 @@ namespace HealthChildTracker_API.Controllers
                 {
                     doctorId = doctorId,
                     weekStart = startDate.ToString("yyyy-MM-dd"),
-                    weekEnd = startDate.AddDays(4).ToString("yyyy-MM-dd"), // Thứ 6
+                    weekEnd = startDate.AddDays(4).ToString("yyyy-MM-dd"),
                     schedules = schedules
                 });
             }

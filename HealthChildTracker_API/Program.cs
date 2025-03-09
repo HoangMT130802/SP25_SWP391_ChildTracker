@@ -6,6 +6,9 @@ using DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,33 +20,69 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new BusinessLogic.Mappers.TimeOnlyJsonConverter());
     });
 
-// Thêm cấu hình Session
-builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession(options =>
+// Cấu hình JWT
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]);
+
+builder.Services.AddAuthentication(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30); // Thời gian session timeout
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(secretKey),
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        ClockSkew = TimeSpan.Zero
+    };
 });
 
-builder.Services.AddAuthentication("CookieAuth")
-    .AddCookie("CookieAuth", options =>
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Health Child Tracker API", Version = "v1" });
+    
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        options.Cookie.Name = "UserLoginCookie";
-        options.LoginPath = "/api/Auth/Login";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
     });
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
-//đăng ký db
+// Đăng ký db context
 builder.Services.AddDbContext<HealthChildTrackerContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// đăng ký các service
+// Đăng ký các service
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IChildService, ChildService>();
 builder.Services.AddScoped<IGrowthRecordService, GrowthRecordService>();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
@@ -54,24 +93,21 @@ builder.Services.AddScoped<IGrowthAssessmentService, GrowthAssessmentService>();
 // Đăng ký automapper
 builder.Services.AddAutoMapper(typeof(MapperProfile));
 
-// cấu hình cors
+// Cấu hình CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowSpecificOrigin",
+    options.AddPolicy("AllowAll",
         builder =>
         {
-            builder
-                .WithOrigins("http://localhost:5174", "http://localhost:5175", "http://localhost:5176") 
-                .AllowAnyMethod()
-                .AllowAnyHeader()
-                .AllowCredentials();
+            builder.AllowAnyOrigin()
+                   .AllowAnyMethod()
+                   .AllowAnyHeader();
         });
 });
 
 var app = builder.Build();
 
-app.UseCors("AllowSpecificOrigin");
-
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -80,9 +116,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Thêm middleware Session
-app.UseSession();
+// Thêm CORS middleware
+app.UseCors("AllowAll");
 
+// Thêm Authentication middleware
 app.UseAuthentication();
 app.UseAuthorization();
 

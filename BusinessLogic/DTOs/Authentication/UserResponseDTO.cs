@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BusinessLogic.DTOs.User;
 
 namespace BusinessLogic.DTOs.Authentication
 {
@@ -16,8 +17,8 @@ namespace BusinessLogic.DTOs.Authentication
         public string Address { get; set; }
         public string Role { get; set; }
         public bool IsActive { get; set; }
-        public string SessionId { get; set; }
-
-        // public string Token { get; set; }  
+        public string Token { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
     }
 }

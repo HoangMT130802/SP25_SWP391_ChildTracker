@@ -106,8 +106,8 @@ namespace BusinessLogic.Mappers
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone))
                 .ForMember(dest => dest.Address, opt => opt.MapFrom(src => src.Address))
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role))
-                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.Status))
-                .ForMember(dest => dest.SessionId, opt => opt.Ignore());
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.Status));
+                
 
             CreateMap<RegisterRequestDTO, User>()
                 .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Username))

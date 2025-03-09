@@ -1,7 +1,6 @@
 ﻿using BusinessLogic.DTOs.Authentication;
 using BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HealthChildTrackerAPI.Controllers
@@ -10,15 +9,15 @@ namespace HealthChildTrackerAPI.Controllers
     [Route("api/auth")]
     public class AuthenticationController : ControllerBase
     {
-        private readonly IAuthService _authService;
+        private readonly IAuthenticationService _authService;
         private readonly ILogger<AuthenticationController> _logger;
 
         public AuthenticationController(
-            IAuthService authService,
+            IAuthenticationService authService,
             ILogger<AuthenticationController> logger)
         {
-            _authService = authService ?? throw new ArgumentNullException(nameof(authService));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _authService = authService;
+            _logger = logger;
         }
 
         [HttpPost("login")]
@@ -28,16 +27,6 @@ namespace HealthChildTrackerAPI.Controllers
             try
             {
                 var response = await _authService.LoginAsync(request);
-                
-                // Lưu session ID vào cookie
-                Response.Cookies.Append("SessionId", response.SessionId, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    Expires = DateTime.UtcNow.AddDays(1)
-                });
-
                 return Ok(response);
             }
             catch (UnauthorizedAccessException ex)
@@ -75,34 +64,6 @@ namespace HealthChildTrackerAPI.Controllers
             {
                 _logger.LogError($"Registration error: {ex.Message}");
                 return BadRequest(new { message = "Đã có lỗi xảy ra khi đăng ký" });
-            }
-        }
-
-        [HttpPost("logout")]
-        public async Task<IActionResult> Logout()
-        {
-            try
-            {
-                var sessionId = Request.Cookies["SessionId"];
-                if (string.IsNullOrEmpty(sessionId))
-                {
-                    return BadRequest(new { message = "Không tìm thấy phiên đăng nhập" });
-                }
-
-                var result = await _authService.LogoutAsync(sessionId);
-                if (result)
-                {
-                    // Xóa cookie
-                    Response.Cookies.Delete("SessionId");
-                    return Ok(new { message = "Đăng xuất thành công" });
-                }
-
-                return BadRequest(new { message = "Đăng xuất thất bại" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Logout error: {ex.Message}");
-                return BadRequest(new { message = "Đã có lỗi xảy ra khi đăng xuất" });
             }
         }
     }

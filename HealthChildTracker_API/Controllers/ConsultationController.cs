@@ -23,13 +23,28 @@ namespace HealthChildTracker_API.Controllers
             _logger = logger;
         }
 
+        private int? GetCurrentUserId()
+        {
+            var userIdClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return null;
+            }
+            return userId;
+        }
+
         [HttpPost("request")]
         public async Task<IActionResult> CreateRequest([FromBody] CreateConsultationRequestDTO request)
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var createdRequest = await _consultationService.CreateRequestAsync(userId, request);
+                var userId = GetCurrentUserId();
+                if (!userId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực người dùng" });
+                }
+
+                var createdRequest = await _consultationService.CreateRequestAsync(userId.Value, request);
                 return CreatedAtAction(nameof(GetRequest), new { requestId = createdRequest.RequestId }, createdRequest);
             }
             catch (InvalidOperationException ex)
@@ -48,8 +63,13 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var request = await _consultationService.GetRequestByIdAsync(requestId, userId);
+                var userId = GetCurrentUserId();
+                if (!userId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực người dùng" });
+                }
+
+                var request = await _consultationService.GetRequestByIdAsync(requestId, userId.Value);
                 return Ok(request);
             }
             catch (KeyNotFoundException ex)
@@ -72,8 +92,13 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var requests = await _consultationService.GetUserRequestsAsync(userId);
+                var userId = GetCurrentUserId();
+                if (!userId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực người dùng" });
+                }
+
+                var requests = await _consultationService.GetUserRequestsAsync(userId.Value);
                 return Ok(requests);
             }
             catch (Exception ex)
@@ -89,8 +114,13 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                var doctorId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var requests = await _consultationService.GetDoctorRequestsAsync(doctorId);
+                var doctorId = GetCurrentUserId();
+                if (!doctorId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực bác sĩ" });
+                }
+
+                var requests = await _consultationService.GetDoctorRequestsAsync(doctorId.Value);
                 return Ok(requests);
             }
             catch (Exception ex)
@@ -108,9 +138,14 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                var doctorId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var doctorId = GetCurrentUserId();
+                if (!doctorId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực bác sĩ" });
+                }
+
                 response.RequestId = requestId;
-                var createdResponse = await _consultationService.CreateResponseAsync(doctorId, response);
+                var createdResponse = await _consultationService.CreateResponseAsync(doctorId.Value, response);
                 return Ok(createdResponse);
             }
             catch (KeyNotFoundException ex)
@@ -135,8 +170,13 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var response = await _consultationService.AddUserQuestionAsync(requestId, userId, question);
+                var userId = GetCurrentUserId();
+                if (!userId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực người dùng" });
+                }
+
+                var response = await _consultationService.AddUserQuestionAsync(requestId, userId.Value, question);
                 return Ok(response);
             }
             catch (KeyNotFoundException ex)
@@ -161,8 +201,13 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var request = await _consultationService.CompleteRequestAsync(requestId, userId, isSatisfied);
+                var userId = GetCurrentUserId();
+                if (!userId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực người dùng" });
+                }
+
+                var request = await _consultationService.CompleteRequestAsync(requestId, userId.Value, isSatisfied);
                 return Ok(request);
             }
             catch (KeyNotFoundException ex)

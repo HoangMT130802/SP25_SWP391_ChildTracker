@@ -11,7 +11,7 @@ namespace HealthChildTracker_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-   
+    [Authorize]
     public class AppointmentController : ControllerBase
     {
         private readonly IAppointmentService _appointmentService;
@@ -23,12 +23,33 @@ namespace HealthChildTracker_API.Controllers
             _logger = logger;
         }
 
+        private int? GetCurrentUserId()
+        {
+            var userIdClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return null;
+            }
+            return userId;
+        }
+
         [HttpGet("GetAppoinmentByUserId/{userId}")]
         public async Task<IActionResult> GetUserAppointments(int userId)
         {
             try
             {
-                // Tạm thời bỏ kiểm tra quyền để test
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực người dùng" });
+                }
+
+                // Chỉ cho phép xem lịch hẹn của chính mình
+                if (currentUserId.Value != userId)
+                {
+                    return Forbid();
+                }
+
                 var appointments = await _appointmentService.GetUserAppointmentsAsync(userId);
                 return Ok(appointments);
             }
@@ -40,11 +61,23 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpGet("GetAppoinmentByDoctor/{doctorId}")]
+        [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> GetDoctorAppointments(int doctorId)
         {
             try
             {
-                // Tạm thời bỏ kiểm tra quyền để test
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực bác sĩ" });
+                }
+
+                // Chỉ cho phép bác sĩ xem lịch hẹn của chính mình
+                if (currentUserId.Value != doctorId)
+                {
+                    return Forbid();
+                }
+
                 var appointments = await _appointmentService.GetDoctorAppointmentsAsync(doctorId);
                 return Ok(appointments);
             }
@@ -60,13 +93,24 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực người dùng" });
+                }
+
                 var appointment = await _appointmentService.GetAppointmentByIdAsync(appointmentId);
                 if (appointment == null)
                 {
                     return NotFound(new { message = "Không tìm thấy lịch hẹn" });
                 }
 
-                // Tạm thời bỏ kiểm tra quyền để test
+                // Kiểm tra quyền truy cập
+                if (appointment.UserId != currentUserId && appointment.DoctorId != currentUserId)
+                {
+                    return Forbid();
+                }
+
                 return Ok(appointment);
             }
             catch (KeyNotFoundException ex)
@@ -85,26 +129,19 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực người dùng" });
+                }
+
                 if (appointmentDTO == null)
                 {
                     return BadRequest(new { message = "Dữ liệu không hợp lệ" });
                 }
 
-                // Kiểm tra dữ liệu đầu vào
-                if (appointmentDTO.ScheduleId <= 0)
-                {
-                    return BadRequest(new { message = "ID lịch làm việc không hợp lệ" });
-                }
-
-                if (appointmentDTO.UserId <= 0)
-                {
-                    return BadRequest(new { message = "ID người dùng không hợp lệ" });
-                }
-
-                if (appointmentDTO.ChildId <= 0)
-                {
-                    return BadRequest(new { message = "ID trẻ không hợp lệ" });
-                }
+                // Đảm bảo người dùng chỉ tạo lịch hẹn cho chính mình
+                appointmentDTO.UserId = currentUserId.Value;
 
                 var createdAppointment = await _appointmentService.CreateAppointmentAsync(appointmentDTO);
                 return CreatedAtAction(nameof(GetAppointmentById), new { appointmentId = createdAppointment.AppointmentId }, createdAppointment);
@@ -133,8 +170,13 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                // Tạm thời bỏ kiểm tra quyền để test
-                var result = await _appointmentService.CancelAppointmentAsync(appointmentId, 0);
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực người dùng" });
+                }
+
+                var result = await _appointmentService.CancelAppointmentAsync(appointmentId, currentUserId.Value);
                 return Ok(new { success = result, message = "Hủy lịch hẹn thành công" });
             }
             catch (KeyNotFoundException ex)
@@ -152,15 +194,18 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-      
-
-       
-
         [HttpPost("{appointmentId}/Change status to completed")]
+        [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> CompleteAppointment(int appointmentId)
         {
             try
             {
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực bác sĩ" });
+                }
+
                 var result = await _appointmentService.CompleteAppointmentAsync(appointmentId);
                 return Ok(new { success = true, message = "Hoàn thành cuộc hẹn thành công", appointment = result });
             }

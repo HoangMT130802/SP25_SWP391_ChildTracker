@@ -30,6 +30,6 @@ namespace BusinessLogic.DTOs.Doctor
         [Required(ErrorMessage = "Vui lòng nhập nơi làm việc")]   
         public int Experience { get; set; }
         public string Biography { get; set; }
-        public bool IsAvailable { get; set; }  
+        public bool IsVerified { get; set; }  
     }
 }

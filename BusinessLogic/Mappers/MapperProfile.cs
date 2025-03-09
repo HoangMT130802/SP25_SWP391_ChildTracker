@@ -128,33 +128,25 @@ namespace BusinessLogic.Mappers
                 .ForMember(dest => dest.PhoneNumber, opt => opt.MapFrom(src => src.Phone))
                 .ForMember(dest => dest.Address, opt => opt.MapFrom(src => src.Address))
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role))
-                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.Status))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt))
                 .ForMember(dest => dest.Specialization, opt => opt.MapFrom(src => 
-                    src.DoctorProfiles != null && src.DoctorProfiles.Any() 
-                        ? src.DoctorProfiles.First().Specialization 
-                        : null))
+                    src.DoctorProfiles.FirstOrDefault().Specialization))
                 .ForMember(dest => dest.Qualification, opt => opt.MapFrom(src => 
-                    src.DoctorProfiles != null && src.DoctorProfiles.Any() 
-                        ? src.DoctorProfiles.First().Qualification 
-                        : null))
+                    src.DoctorProfiles.FirstOrDefault().Qualification))
                 .ForMember(dest => dest.LicenseNumber, opt => opt.MapFrom(src => 
-                    src.DoctorProfiles != null && src.DoctorProfiles.Any() 
-                        ? src.DoctorProfiles.First().LicenseNumber 
-                        : null))
+                    src.DoctorProfiles.FirstOrDefault().LicenseNumber))
                 .ForMember(dest => dest.Experience, opt => opt.MapFrom(src => 
-                    src.DoctorProfiles != null && src.DoctorProfiles.Any() 
-                        ? src.DoctorProfiles.First().Experience.ToString() 
-                        : "0"))
-                .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => 
-                    src.DoctorProfiles != null && src.DoctorProfiles.Any() 
-                        ? (double)src.DoctorProfiles.First().AverageRating 
-                        : 0.0))
-                .ForMember(dest => dest.ConsultationCount, opt => opt.MapFrom(src => 
-                    src.DoctorProfiles != null && src.DoctorProfiles.Any() 
-                        ? src.DoctorProfiles.First().TotalRatings 
-                        : 0));
+                    src.DoctorProfiles.FirstOrDefault().Experience))
+                .ForMember(dest => dest.Biography, opt => opt.MapFrom(src => 
+                    src.DoctorProfiles.FirstOrDefault().Biography))
+                .ForMember(dest => dest.AverageRating, opt => opt.MapFrom(src => 
+                    src.DoctorProfiles.FirstOrDefault().AverageRating))
+                .ForMember(dest => dest.TotalRatings, opt => opt.MapFrom(src => 
+                    src.DoctorProfiles.FirstOrDefault().TotalRatings))
+                .ForMember(dest => dest.IsVerified, opt => opt.MapFrom(src => 
+                    src.DoctorProfiles.FirstOrDefault().IsVerified));
 
             // Child and Growth Record mappings
             CreateMap<Child, ChildDTO>();

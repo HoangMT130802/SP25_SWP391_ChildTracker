@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
-using BusinessLogic.Utils;
+using BusinessLogic.Mappers;
 
 namespace BusinessLogic.DTOs.Doctor_Schedule
 {
@@ -12,13 +12,13 @@ namespace BusinessLogic.DTOs.Doctor_Schedule
         public string DoctorName { get; set; }
         public string DoctorSpecialization { get; set; }
         
-        [JsonConverter(typeof(DateTimeConverters.DateOnlyJsonConverter))]
+        [JsonConverter(typeof(Mappers.DateOnlyJsonConverter))]
         public DateOnly WorkDate { get; set; }
         
-        [JsonConverter(typeof(DateTimeConverters.TimeOnlyJsonConverter))]
+        [JsonConverter(typeof(Mappers.TimeOnlyJsonConverter))]
         public TimeOnly StartTime { get; set; }
         
-        [JsonConverter(typeof(DateTimeConverters.TimeOnlyJsonConverter))]
+        [JsonConverter(typeof(Mappers.TimeOnlyJsonConverter))]
         public TimeOnly EndTime { get; set; }
         
         public int SlotDuration { get; set; }

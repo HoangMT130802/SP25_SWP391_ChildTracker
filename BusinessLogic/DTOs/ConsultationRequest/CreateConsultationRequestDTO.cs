@@ -9,12 +9,11 @@ namespace BusinessLogic.DTOs.ConsultationRequest
 {
     public class CreateConsultationRequestDTO
     {
-        [Required]
+        [Required(ErrorMessage = "Vui lòng chọn trẻ cần tư vấn")]
         public int ChildId { get; set; }
 
-        [Required]
-        [MinLength(10)]
-        [MaxLength(1000)]
+        [Required(ErrorMessage = "Vui lòng nhập nội dung cần tư vấn")]
+        [MinLength(10, ErrorMessage = "Nội dung tư vấn phải có ít nhất 10 ký tự")]
         public string Description { get; set; }
     }
 }

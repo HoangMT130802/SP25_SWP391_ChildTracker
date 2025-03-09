@@ -35,7 +35,9 @@ public partial class User
 
     public virtual ICollection<Child> Children { get; set; } = new List<Child>();
 
-    public virtual ICollection<ConsultationRequest> ConsultationRequests { get; set; } = new List<ConsultationRequest>();
+    public virtual ICollection<ConsultationRequest> ConsultationRequestAssignedDoctors { get; set; } = new List<ConsultationRequest>();
+
+    public virtual ICollection<ConsultationRequest> ConsultationRequestUsers { get; set; } = new List<ConsultationRequest>();
 
     public virtual ICollection<ConsultationResponse> ConsultationResponses { get; set; } = new List<ConsultationResponse>();
 

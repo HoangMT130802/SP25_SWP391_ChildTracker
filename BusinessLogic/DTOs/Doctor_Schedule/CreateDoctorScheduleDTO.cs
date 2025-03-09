@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using BusinessLogic.Utils;
+using BusinessLogic.Mappers;
 
 namespace BusinessLogic.DTOs.Doctor_Schedule
 {

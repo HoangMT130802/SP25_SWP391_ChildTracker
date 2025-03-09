@@ -34,14 +34,16 @@ namespace BusinessLogic.Services.Implementations
         {
             try
             {
-                var consultationRequest = new ConsultationRequest
+                // Kiểm tra child có thuộc về user không
+                var childRepo = _unitOfWork.GetRepository<Child>();
+                var child = await childRepo.GetAsync(c => c.ChildId == request.ChildId && c.UserId == userId);
+                if (child == null)
                 {
-                    UserId = userId,
-                    ChildId = request.ChildId,
-                    Description = request.Description,
-                    Status = "Pending",
-                    CreatedAt = DateTime.UtcNow
-                };
+                    throw new InvalidOperationException("Không tìm thấy thông tin trẻ hoặc trẻ không thuộc về bạn");
+                }
+
+                var consultationRequest = _mapper.Map<ConsultationRequest>(request);
+                consultationRequest.UserId = userId;
 
                 var repo = _unitOfWork.GetRepository<ConsultationRequest>();
                 await repo.AddAsync(consultationRequest);
@@ -50,7 +52,7 @@ namespace BusinessLogic.Services.Implementations
                 // Tự động phân công bác sĩ
                 await AutoAssignDoctorAsync(consultationRequest.RequestId);
 
-                return _mapper.Map<ConsultationRequestDTO>(consultationRequest);
+                return await GetRequestByIdAsync(consultationRequest.RequestId, userId);
             }
             catch (Exception ex)
             {
@@ -71,11 +73,12 @@ namespace BusinessLogic.Services.Implementations
 
         public async Task<ConsultationResponseDTO> CreateResponseAsync(int doctorId, CreateConsultationResponseDTO response)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 // Kiểm tra request có tồn tại và trạng thái hợp lệ
-                var request = await _unitOfWork.GetRepository<ConsultationRequest>()
-                    .GetAsync(r => r.RequestId == response.RequestId);
+                var requestRepo = _unitOfWork.GetRepository<ConsultationRequest>();
+                var request = await requestRepo.GetAsync(r => r.RequestId == response.RequestId);
 
                 if (request == null)
                     throw new KeyNotFoundException("Không tìm thấy yêu cầu tư vấn");
@@ -83,139 +86,92 @@ namespace BusinessLogic.Services.Implementations
                 if (request.Status == "Closed" || request.Status == "Expired")
                     throw new InvalidOperationException("Yêu cầu tư vấn đã đóng hoặc hết hạn");
 
-                var consultationResponse = new ConsultationResponse
-                {
-                    RequestId = response.RequestId,
-                    DoctorId = doctorId,
-                    Response = response.Response,
-                    Attachments = response.Attachments,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
+                if (request.AssignedDoctorId != doctorId)
+                    throw new InvalidOperationException("Bạn không được phân công cho yêu cầu tư vấn này");
 
-                var repo = _unitOfWork.GetRepository<ConsultationResponse>();
-                await repo.AddAsync(consultationResponse);
+                var consultationResponse = _mapper.Map<ConsultationResponse>(response);
+                consultationResponse.DoctorId = doctorId;
+                consultationResponse.IsFromUser = false;
 
-                // Cập nhật trạng thái request
+                var responseRepo = _unitOfWork.GetRepository<ConsultationResponse>();
+                await responseRepo.AddAsync(consultationResponse);
+
+                // Cập nhật trạng thái và thời gian hoạt động của request
                 request.Status = "InProgress";
-                _unitOfWork.GetRepository<ConsultationRequest>().Update(request);
+                request.LastActivityAt = DateTime.UtcNow;
+                requestRepo.Update(request);
 
                 await _unitOfWork.SaveChangesAsync();
+                await transaction.CommitAsync();
 
                 return _mapper.Map<ConsultationResponseDTO>(consultationResponse);
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Lỗi khi tạo phản hồi tư vấn");
                 throw;
             }
         }
 
-        public async Task<ConsultationRequestDTO> CloseRequestAsync(int requestId, string reason, string closedBy)
+        public async Task<ConsultationResponseDTO> AddUserQuestionAsync(int requestId, int userId, string question)
         {
             try
             {
-                var request = await _unitOfWork.GetRepository<ConsultationRequest>()
-                    .GetAsync(r => r.RequestId == requestId);
+                var requestRepo = _unitOfWork.GetRepository<ConsultationRequest>();
+                var request = await requestRepo.GetAsync(r => r.RequestId == requestId && r.UserId == userId);
 
                 if (request == null)
                     throw new KeyNotFoundException("Không tìm thấy yêu cầu tư vấn");
 
-                request.Status = "Closed";
-                _unitOfWork.GetRepository<ConsultationRequest>().Update(request);
+                if (request.Status == "Completed")
+                    throw new InvalidOperationException("Không thể thêm câu hỏi cho yêu cầu đã hoàn thành");
 
-                // Thêm response ghi nhận việc đóng
-                var closeResponse = new ConsultationResponse
+                var response = new ConsultationResponse
                 {
                     RequestId = requestId,
-                    DoctorId = 0, // System
-                    Response = $"Yêu cầu đã được đóng bởi {closedBy}. Lý do: {reason}",
+                    Response = question,
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    UpdatedAt = DateTime.UtcNow,
+                    IsFromUser = true
                 };
 
-                await _unitOfWork.GetRepository<ConsultationResponse>().AddAsync(closeResponse);
+                var responseRepo = _unitOfWork.GetRepository<ConsultationResponse>();
+                await responseRepo.AddAsync(response);
+                
+                request.LastActivityAt = DateTime.UtcNow;
                 await _unitOfWork.SaveChangesAsync();
 
-                return _mapper.Map<ConsultationRequestDTO>(request);
+                return _mapper.Map<ConsultationResponseDTO>(response);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi đóng yêu cầu tư vấn");
+                _logger.LogError(ex, "Lỗi khi thêm câu hỏi cho yêu cầu tư vấn {RequestId}", requestId);
                 throw;
             }
         }
 
-        public async Task<bool> CheckAndUpdateExpiredRequestsAsync()
+        public async Task<ConsultationRequestDTO> GetRequestByIdAsync(int requestId, int userId)
         {
             try
             {
-                var repo = _unitOfWork.GetRepository<ConsultationRequest>();
-                var expiryDate = DateTime.UtcNow.AddHours(-REQUEST_EXPIRY_HOURS);
-
-                // Lấy các request chưa đóng và không có hoạt động trong 24h
-                var expiredRequests = await repo.FindAsync(r =>
-                    r.Status != "Closed" &&
-                    r.Status != "Expired" &&
-                    r.CreatedAt <= expiryDate &&
-                    !r.ConsultationResponses.Any(cr => cr.CreatedAt > expiryDate));
-
-                foreach (var request in expiredRequests)
-                {
-                    request.Status = "Expired";
-                    repo.Update(request);
-                }
-
-                await _unitOfWork.SaveChangesAsync();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Lỗi khi kiểm tra và cập nhật yêu cầu hết hạn");
-                return false;
-            }
-        }
-
-        public async Task<Dictionary<int, int>> GetDoctorWorkloadAsync()
-        {
-            var doctorRepo = _unitOfWork.GetRepository<User>();
-            var requestRepo = _unitOfWork.GetRepository<ConsultationRequest>();
-
-            // Lấy danh sách bác sĩ
-            var doctors = await doctorRepo.FindAsync(u => u.Role == "Doctor");
-            var workload = new Dictionary<int, int>();
-
-            foreach (var doctor in doctors)
-            {
-                // Đếm số lượng request đang xử lý của mỗi bác sĩ
-                var activeRequests = await requestRepo.FindAsync(r =>
-                    r.ConsultationResponses.Any(cr => cr.DoctorId == doctor.UserId) &&
-                    r.Status != "Closed" &&
-                    r.Status != "Expired");
-
-                workload.Add(doctor.UserId, activeRequests.Count());
-            }
-
-            return workload;
-        }
-        public async Task<ConsultationRequestDTO> GetRequestByIdAsync(int requestId)
-        {
-            try
-            {
-                var repo = _unitOfWork.GetRepository<ConsultationRequest>();
-                var request = await repo.GetAsync(
-                    r => r.RequestId == requestId,
-                    includeProperties: "User,Child,ConsultationResponses,ConsultationResponses.Doctor"
+                var requestRepo = _unitOfWork.GetRepository<ConsultationRequest>();
+                var request = await requestRepo.GetAsync(
+                    r => r.RequestId == requestId && (r.UserId == userId || r.AssignedDoctorId == userId),
+                    includeProperties: "User,AssignedDoctor,ConsultationResponses"
                 );
 
                 if (request == null)
-                    throw new KeyNotFoundException($"Không tìm thấy yêu cầu tư vấn ID {requestId}");
+                    throw new KeyNotFoundException("Không tìm thấy yêu cầu tư vấn");
+
+                if (request.UserId != userId && request.AssignedDoctorId != userId)
+                    throw new UnauthorizedAccessException("Bạn không có quyền xem yêu cầu tư vấn này");
 
                 return _mapper.Map<ConsultationRequestDTO>(request);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Lỗi khi lấy yêu cầu tư vấn {requestId}");
+                _logger.LogError(ex, "Lỗi khi lấy thông tin yêu cầu tư vấn {RequestId}", requestId);
                 throw;
             }
         }
@@ -227,7 +183,7 @@ namespace BusinessLogic.Services.Implementations
                 var repo = _unitOfWork.GetRepository<ConsultationRequest>();
                 var requests = await repo.FindAsync(
                     r => r.UserId == userId,
-                    includeProperties: "User,Child,ConsultationResponses,ConsultationResponses.Doctor"
+                    includeProperties: "User,Child,AssignedDoctor,ConsultationResponses,ConsultationResponses.Doctor"
                 );
 
                 return _mapper.Map<IEnumerable<ConsultationRequestDTO>>(requests);
@@ -245,8 +201,8 @@ namespace BusinessLogic.Services.Implementations
             {
                 var repo = _unitOfWork.GetRepository<ConsultationRequest>();
                 var requests = await repo.FindAsync(
-                    r => r.ConsultationResponses.Any(cr => cr.DoctorId == doctorId),
-                    includeProperties: "User,Child,ConsultationResponses,ConsultationResponses.Doctor"
+                    r => r.AssignedDoctorId == doctorId,
+                    includeProperties: "User,Child,AssignedDoctor,ConsultationResponses,ConsultationResponses.Doctor"
                 );
 
                 return _mapper.Map<IEnumerable<ConsultationRequestDTO>>(requests);
@@ -258,26 +214,106 @@ namespace BusinessLogic.Services.Implementations
             }
         }
 
-        public async Task<ConsultationResponseDTO> UpdateResponseAsync(int responseId, string newResponse)
+        public async Task<ConsultationRequestDTO> MarkRequestAsSatisfiedAsync(int requestId, int userId)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                var repo = _unitOfWork.GetRepository<ConsultationResponse>();
-                var response = await repo.GetAsync(r => r.ResponseId == responseId);
+                var repo = _unitOfWork.GetRepository<ConsultationRequest>();
+                var request = await repo.GetAsync(r => r.RequestId == requestId && r.UserId == userId);
+
+                if (request == null)
+                    throw new KeyNotFoundException("Không tìm thấy yêu cầu tư vấn");
+
+                if (request.Status == "Closed" || request.Status == "Expired")
+                    throw new InvalidOperationException("Yêu cầu tư vấn đã đóng hoặc hết hạn");
+
+                request.Status = "Closed";
+                request.IsSatisfied = true;
+                request.ClosedReason = "Người dùng hài lòng với câu trả lời";
+                request.ClosedAt = DateTime.UtcNow;
+
+                repo.Update(request);
+                await _unitOfWork.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return await GetRequestByIdAsync(requestId, userId);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, $"Lỗi khi đánh dấu hài lòng cho yêu cầu {requestId}");
+                throw;
+            }
+        }
+
+        public async Task<ConsultationRequestDTO> CloseRequestAsync(int requestId, string reason, string closedBy)
+        {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                var repo = _unitOfWork.GetRepository<ConsultationRequest>();
+                var request = await repo.GetAsync(r => r.RequestId == requestId);
+
+                if (request == null)
+                    throw new KeyNotFoundException("Không tìm thấy yêu cầu tư vấn");
+
+                if (request.Status == "Closed" || request.Status == "Expired")
+                    throw new InvalidOperationException("Yêu cầu tư vấn đã đóng hoặc hết hạn");
+
+                request.Status = "Closed";
+                request.ClosedReason = $"Đóng bởi {closedBy}. Lý do: {reason}";
+                request.ClosedAt = DateTime.UtcNow;
+
+                repo.Update(request);
+                await _unitOfWork.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return await GetRequestByIdAsync(requestId, request.UserId);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, $"Lỗi khi đóng yêu cầu tư vấn {requestId}");
+                throw;
+            }
+        }
+
+        public async Task<ConsultationResponseDTO> UpdateResponseAsync(int responseId, string newResponse)
+        {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                var responseRepo = _unitOfWork.GetRepository<ConsultationResponse>();
+                var response = await responseRepo.GetAsync(
+                    r => r.ResponseId == responseId,
+                    includeProperties: "Request,Doctor"
+                );
 
                 if (response == null)
                     throw new KeyNotFoundException($"Không tìm thấy phản hồi ID {responseId}");
 
+                if (response.Request.Status == "Closed" || response.Request.Status == "Expired")
+                    throw new InvalidOperationException("Không thể cập nhật phản hồi cho yêu cầu đã đóng hoặc hết hạn");
+
                 response.Response = newResponse;
                 response.UpdatedAt = DateTime.UtcNow;
 
-                repo.Update(response);
+                // Cập nhật thời gian hoạt động của request
+                var requestRepo = _unitOfWork.GetRepository<ConsultationRequest>();
+                var request = await requestRepo.GetAsync(r => r.RequestId == response.RequestId);
+                request.LastActivityAt = DateTime.UtcNow;
+
+                responseRepo.Update(response);
+                requestRepo.Update(request);
                 await _unitOfWork.SaveChangesAsync();
+                await transaction.CommitAsync();
 
                 return _mapper.Map<ConsultationResponseDTO>(response);
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, $"Lỗi khi cập nhật phản hồi {responseId}");
                 throw;
             }
@@ -285,6 +321,7 @@ namespace BusinessLogic.Services.Implementations
 
         public async Task<ConsultationRequestDTO> AssignDoctorAsync(int requestId, int doctorId)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 // Kiểm tra bác sĩ có tồn tại
@@ -305,6 +342,9 @@ namespace BusinessLogic.Services.Implementations
                     throw new InvalidOperationException("Yêu cầu tư vấn không ở trạng thái chờ xử lý");
 
                 request.Status = "Assigned";
+                request.AssignedDoctorId = doctorId;
+                request.LastActivityAt = DateTime.UtcNow;
+
                 requestRepo.Update(request);
 
                 // Tạo response thông báo phân công
@@ -314,17 +354,105 @@ namespace BusinessLogic.Services.Implementations
                     RequestId = requestId,
                     DoctorId = doctorId,
                     Response = "Bác sĩ đã được phân công xử lý yêu cầu này",
+                    IsFromUser = false,
+                    IsQuestion = false,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 });
 
                 await _unitOfWork.SaveChangesAsync();
+                await transaction.CommitAsync();
 
-                return await GetRequestByIdAsync(requestId);
+                return await GetRequestByIdAsync(requestId, request.UserId);
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, $"Lỗi khi phân công bác sĩ cho yêu cầu {requestId}");
+                throw;
+            }
+        }
+
+        public async Task<Dictionary<int, int>> GetDoctorWorkloadAsync()
+        {
+            try
+            {
+                var doctorRepo = _unitOfWork.GetRepository<User>();
+                var requestRepo = _unitOfWork.GetRepository<ConsultationRequest>();
+
+                // Lấy danh sách bác sĩ
+                var doctors = await doctorRepo.FindAsync(u => u.Role == "Doctor");
+                var workload = new Dictionary<int, int>();
+
+                foreach (var doctor in doctors)
+                {
+                    // Đếm số lượng request đang xử lý của mỗi bác sĩ
+                    var activeRequests = await requestRepo.FindAsync(r =>
+                        r.AssignedDoctorId == doctor.UserId &&
+                        r.Status != "Closed" &&
+                        r.Status != "Expired");
+
+                    workload.Add(doctor.UserId, activeRequests.Count());
+                }
+
+                return workload;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy thông tin khối lượng công việc của bác sĩ");
+                throw;
+            }
+        }
+
+        public async Task<ConsultationRequestDTO> CompleteRequestAsync(int requestId, int userId, bool isSatisfied)
+        {
+            try
+            {
+                var requestRepo = _unitOfWork.GetRepository<ConsultationRequest>();
+                var request = await requestRepo.GetAsync(r => r.RequestId == requestId && r.UserId == userId);
+
+                if (request == null)
+                    throw new KeyNotFoundException("Không tìm thấy yêu cầu tư vấn");
+
+                if (request.Status == "Completed")
+                    throw new InvalidOperationException("Yêu cầu tư vấn đã được hoàn thành");
+
+                request.Status = "Completed";
+                request.IsSatisfied = isSatisfied;
+                request.LastActivityAt = DateTime.UtcNow;
+
+                await _unitOfWork.SaveChangesAsync();
+
+                return _mapper.Map<ConsultationRequestDTO>(request);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi hoàn thành yêu cầu tư vấn {RequestId}", requestId);
+                throw;
+            }
+        }
+
+        public async Task CheckAndUpdateExpiredRequestsAsync()
+        {
+            try
+            {
+                var requestRepo = _unitOfWork.GetRepository<ConsultationRequest>();
+                var expirationTime = DateTime.UtcNow.AddHours(-24);
+                var expiredRequests = await requestRepo.FindAsync(
+                    r => r.Status == "Pending" && r.LastActivityAt < expirationTime
+                );
+
+                foreach (var request in expiredRequests)
+                {
+                    request.Status = "Expired";
+                    request.LastActivityAt = DateTime.UtcNow;
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi cập nhật trạng thái các yêu cầu tư vấn hết hạn");
                 throw;
             }
         }

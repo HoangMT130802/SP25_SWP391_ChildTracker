@@ -19,6 +19,18 @@ public partial class ConsultationRequest
 
     public DateTime CreatedAt { get; set; }
 
+    public int? AssignedDoctorId { get; set; }
+
+    public bool IsSatisfied { get; set; }
+
+    public DateTime LastActivityAt { get; set; }
+
+    public DateTime? ClosedAt { get; set; }
+
+    public string ClosedReason { get; set; }
+
+    public virtual User AssignedDoctor { get; set; }
+
     public virtual Child Child { get; set; }
 
     public virtual ICollection<ConsultationResponse> ConsultationResponses { get; set; } = new List<ConsultationResponse>();

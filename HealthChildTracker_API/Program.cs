@@ -1,7 +1,6 @@
 ﻿using BusinessLogic.Mappers;
 using BusinessLogic.Services.Interfaces;
 using BusinessLogic.Services.Implementations;
-using BusinessLogic.Utils;
 using DataAccess.UnitOfWork;
 using DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -14,8 +13,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.Converters.Add(new DateTimeConverters.DateOnlyJsonConverter());
-        options.JsonSerializerOptions.Converters.Add(new DateTimeConverters.TimeOnlyJsonConverter());
+        options.JsonSerializerOptions.Converters.Add(new BusinessLogic.Mappers.DateOnlyJsonConverter());
+        options.JsonSerializerOptions.Converters.Add(new BusinessLogic.Mappers.TimeOnlyJsonConverter());
     });
 
 // Thêm cấu hình Session

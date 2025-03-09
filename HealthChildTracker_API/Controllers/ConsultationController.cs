@@ -2,7 +2,6 @@
 using BusinessLogic.DTOs.ConsultationResponse;
 using BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -10,6 +9,7 @@ namespace HealthChildTracker_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ConsultationController : ControllerBase
     {
         private readonly IConsultationService _consultationService;
@@ -23,17 +23,42 @@ namespace HealthChildTracker_API.Controllers
             _logger = logger;
         }
 
+        [HttpPost("request")]
+        public async Task<IActionResult> CreateRequest([FromBody] CreateConsultationRequestDTO request)
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var createdRequest = await _consultationService.CreateRequestAsync(userId, request);
+                return CreatedAtAction(nameof(GetRequest), new { requestId = createdRequest.RequestId }, createdRequest);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo yêu cầu tư vấn");
+                return StatusCode(500, new { message = "Lỗi server" });
+            }
+        }
+
         [HttpGet("request/{requestId}")]
         public async Task<IActionResult> GetRequest(int requestId)
         {
             try
             {
-                var request = await _consultationService.GetRequestByIdAsync(requestId);
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var request = await _consultationService.GetRequestByIdAsync(requestId, userId);
                 return Ok(request);
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
             }
             catch (Exception ex)
             {
@@ -43,7 +68,6 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpGet("user/requests")]
-        [Authorize]
         public async Task<IActionResult> GetUserRequests()
         {
             try
@@ -76,37 +100,69 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpPut("response/{responseId}")]
+        [HttpPost("request/{requestId}/response")]
         [Authorize(Roles = "Doctor")]
-        public async Task<IActionResult> UpdateResponse(
-            int responseId,
-            [FromBody] string newResponse)
+        public async Task<IActionResult> CreateResponse(
+            int requestId,
+            [FromBody] CreateConsultationResponseDTO response)
         {
             try
             {
-                var response = await _consultationService.UpdateResponseAsync(responseId, newResponse);
+                var doctorId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                response.RequestId = requestId;
+                var createdResponse = await _consultationService.CreateResponseAsync(doctorId, response);
+                return Ok(createdResponse);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo phản hồi");
+                return StatusCode(500, new { message = "Lỗi server" });
+            }
+        }
+
+        [HttpPost("request/{requestId}/question")]
+        public async Task<IActionResult> AskQuestion(
+            int requestId,
+            [FromBody] string question)
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var response = await _consultationService.AddUserQuestionAsync(requestId, userId, question);
                 return Ok(response);
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi cập nhật phản hồi");
+                _logger.LogError(ex, "Lỗi khi thêm câu hỏi");
                 return StatusCode(500, new { message = "Lỗi server" });
             }
         }
 
-        [HttpPost("assign/{requestId}")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> AssignDoctor(
+        [HttpPost("request/{requestId}/complete")]
+        public async Task<IActionResult> CompleteRequest(
             int requestId,
-            [FromBody] int doctorId)
+            [FromBody] bool isSatisfied)
         {
             try
             {
-                var request = await _consultationService.AssignDoctorAsync(requestId, doctorId);
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var request = await _consultationService.CompleteRequestAsync(requestId, userId, isSatisfied);
                 return Ok(request);
             }
             catch (KeyNotFoundException ex)
@@ -119,23 +175,7 @@ namespace HealthChildTracker_API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi phân công bác sĩ");
-                return StatusCode(500, new { message = "Lỗi server" });
-            }
-        }
-
-        [HttpGet("doctor/workload")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetDoctorWorkload()
-        {
-            try
-            {
-                var workload = await _consultationService.GetDoctorWorkloadAsync();
-                return Ok(workload);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Lỗi khi lấy thông tin khối lượng công việc của bác sĩ");
+                _logger.LogError(ex, "Lỗi khi hoàn thành yêu cầu tư vấn");
                 return StatusCode(500, new { message = "Lỗi server" });
             }
         }

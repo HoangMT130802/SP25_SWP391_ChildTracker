@@ -21,6 +21,10 @@ public partial class ConsultationResponse
 
     public DateTime UpdatedAt { get; set; }
 
+    public bool IsFromUser { get; set; }
+
+    public bool IsQuestion { get; set; }
+
     public virtual User Doctor { get; set; }
 
     public virtual ConsultationRequest Request { get; set; }

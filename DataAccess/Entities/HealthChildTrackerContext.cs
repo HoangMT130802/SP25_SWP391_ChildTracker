@@ -43,6 +43,7 @@ public partial class HealthChildTrackerContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserMembership> UserMemberships { get; set; }
+
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -165,18 +166,31 @@ public partial class HealthChildTrackerContext : DbContext
         {
             entity.HasKey(e => e.RequestId).HasName("consultationrequests_requestid_primary");
 
+            entity.HasIndex(e => e.LastActivityAt, "IX_ConsultationRequests_LastActivityAt");
+
+            entity.HasIndex(e => e.Status, "IX_ConsultationRequests_Status");
+
+            entity.Property(e => e.ClosedAt).HasColumnType("datetime");
+            entity.Property(e => e.ClosedReason).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Description).IsRequired();
+            entity.Property(e => e.LastActivityAt)
+                .HasDefaultValueSql("(getutcdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.Status)
                 .IsRequired()
                 .HasMaxLength(50);
+
+            entity.HasOne(d => d.AssignedDoctor).WithMany(p => p.ConsultationRequestAssignedDoctors)
+                .HasForeignKey(d => d.AssignedDoctorId)
+                .HasConstraintName("FK_ConsultationRequests_Doctor");
 
             entity.HasOne(d => d.Child).WithMany(p => p.ConsultationRequests)
                 .HasForeignKey(d => d.ChildId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("consultationrequests_childid_foreign");
 
-            entity.HasOne(d => d.User).WithMany(p => p.ConsultationRequests)
+            entity.HasOne(d => d.User).WithMany(p => p.ConsultationRequestUsers)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull);
         });

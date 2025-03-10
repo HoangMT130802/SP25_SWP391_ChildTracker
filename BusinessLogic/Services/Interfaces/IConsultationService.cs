@@ -7,20 +7,32 @@ namespace BusinessLogic.Services.Interfaces
 {
     public interface IConsultationService
     {
-        // Request methods
+        // Các phương thức chính cho request
         Task<ConsultationRequestDTO> CreateRequestAsync(int userId, CreateConsultationRequestDTO request);
         Task<ConsultationRequestDTO> GetRequestByIdAsync(int requestId, int userId);
         Task<IEnumerable<ConsultationRequestDTO>> GetUserRequestsAsync(int userId);
         Task<IEnumerable<ConsultationRequestDTO>> GetDoctorRequestsAsync(int doctorId);
-        Task<ConsultationResponseDTO> AddQuestionAsync(int requestId, int userId, AskQuestionDTO questionDto);
-        Task<ConsultationResponseDTO> AddDoctorResponseAsync(int requestId, int doctorId, DoctorResponseDTO responseDto);
-        Task<ConsultationRequestDTO> CompleteRequestAsync(int requestId, int userId, bool isSatisfied);
-        Task<ConsultationRequestDTO> CloseRequestAsync(int requestId, string reason, string closedBy);
-        Task<ConsultationResponseDTO> UpdateResponseAsync(int responseId, string newResponse);
+        
+        // Phương thức xử lý câu hỏi và trả lời
+        Task<ConsultationResponseDTO> AddResponseAsync(
+            int requestId, 
+            int userId, 
+            AskQuestionDTO questionDto, 
+            int? parentResponseId = null, 
+            bool isFromDoctor = false);
+
+        // Phương thức quản lý trạng thái request
+        Task<ConsultationRequestDTO> UpdateRequestStatusAsync(
+            int requestId, 
+            int userId, 
+            string action, 
+            string reason = null, 
+            bool? isSatisfied = null);
+
+        // Phương thức hỗ trợ
+        Task<ConsultationResponseDTO> UpdateResponseContentAsync(int responseId, string newContent);
         Task<ConsultationRequestDTO> AssignDoctorAsync(int requestId, int doctorId);
         Task<Dictionary<int, int>> GetDoctorWorkloadAsync();
-
-        // Background task
         Task CheckAndUpdateExpiredRequestsAsync();
     }
 }

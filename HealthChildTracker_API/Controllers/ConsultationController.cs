@@ -171,8 +171,12 @@ namespace HealthChildTracker_API.Controllers
                     return Unauthorized(new { message = "Không thể xác thực bác sĩ" });
                 }
 
-                var createdResponse = await _consultationService.AddDoctorResponseAsync(requestId, doctorId.Value, responseDto);
-                return Ok(createdResponse);
+                var response = await _consultationService.AddResponseAsync(
+                    requestId,
+                    doctorId.Value,
+                    new AskQuestionDTO { Question = responseDto.Answer, Attachments = responseDto.Attachments },
+                    isFromDoctor: true);
+                return Ok(response);
             }
             catch (KeyNotFoundException ex)
             {
@@ -201,7 +205,10 @@ namespace HealthChildTracker_API.Controllers
                     return Unauthorized(new { message = "Không thể xác thực người dùng" });
                 }
 
-                var response = await _consultationService.AddQuestionAsync(requestId, userId.Value, questionDto);
+                var response = await _consultationService.AddResponseAsync(
+                    requestId,
+                    userId.Value,
+                    questionDto);
                 return Ok(response);
             }
             catch (KeyNotFoundException ex)
@@ -219,7 +226,7 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpPost("request/{requestId}/answer/{questionId}")]
+        [HttpPost("request/{requestId}/response/{questionId}")]
         [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> AnswerQuestion(
             int requestId,
@@ -234,8 +241,12 @@ namespace HealthChildTracker_API.Controllers
                     return Unauthorized(new { message = "Không thể xác thực bác sĩ" });
                 }
 
-                answerDto.QuestionId = questionId; // Đảm bảo questionId từ URL được sử dụng
-                var response = await _consultationService.AddDoctorResponseAsync(requestId, doctorId.Value, answerDto);
+                var response = await _consultationService.AddResponseAsync(
+                    requestId,
+                    doctorId.Value,
+                    new AskQuestionDTO { Question = answerDto.Answer, Attachments = answerDto.Attachments },
+                    parentResponseId: questionId,
+                    isFromDoctor: true);
                 return Ok(response);
             }
             catch (KeyNotFoundException ex)
@@ -248,7 +259,43 @@ namespace HealthChildTracker_API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi tạo phản hồi");
+                _logger.LogError(ex, "Lỗi khi trả lời câu hỏi");
+                return StatusCode(500, new { message = "Lỗi server" });
+            }
+        }
+
+        [HttpPost("request/{requestId}/question/{responseId}")]
+        public async Task<IActionResult> AskFollowUpQuestion(
+            int requestId,
+            int responseId,
+            [FromBody] AskQuestionDTO questionDto)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                if (!userId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực người dùng" });
+                }
+
+                var response = await _consultationService.AddResponseAsync(
+                    requestId,
+                    userId.Value,
+                    questionDto,
+                    parentResponseId: responseId);
+                return Ok(response);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi thêm câu hỏi");
                 return StatusCode(500, new { message = "Lỗi server" });
             }
         }
@@ -266,8 +313,15 @@ namespace HealthChildTracker_API.Controllers
                     return Unauthorized(new { message = "Không thể xác thực người dùng" });
                 }
 
-                var request = await _consultationService.CompleteRequestAsync(requestId, userId.Value, isSatisfied);
-                return Ok(request);
+                var request = await _consultationService.UpdateRequestStatusAsync(
+                    requestId,
+                    userId.Value,
+                    "complete",
+                    isSatisfied: isSatisfied);
+                return Ok(new { 
+                    message = isSatisfied ? "Cảm ơn bạn đã sử dụng dịch vụ" : "Chúng tôi rất tiếc vì chưa đáp ứng được yêu cầu của bạn",
+                    request = request 
+                });
             }
             catch (KeyNotFoundException ex)
             {

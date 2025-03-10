@@ -167,35 +167,51 @@ namespace BusinessLogic.Mappers
             CreateMap<CreateGrowthRecordDTO, GrowthRecord>();
             CreateMap<UpdateGrowthRecordDTO, GrowthRecord>();
 
-            // Consultation mappings
-            CreateMap<ConsultationRequest, ConsultationRequestDTO>();
+            // Consultation Request mappings
+            CreateMap<ConsultationRequest, ConsultationRequestDTO>()
+                .ForMember(dest => dest.RequestId, opt => opt.MapFrom(src => src.RequestId))
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+                .ForMember(dest => dest.ChildId, opt => opt.MapFrom(src => src.ChildId))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+                .ForMember(dest => dest.IsSatisfied, opt => opt.MapFrom(src => src.IsSatisfied))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
+                .ForMember(dest => dest.LastActivityAt, opt => opt.MapFrom(src => src.LastActivityAt))
+                .ForMember(dest => dest.ClosedAt, opt => opt.MapFrom(src => src.ClosedAt))
+                .ForMember(dest => dest.ClosedReason, opt => opt.MapFrom(src => src.ClosedReason))
+                .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User))
+                .ForMember(dest => dest.AssignedDoctor, opt => opt.MapFrom(src => src.AssignedDoctor))
+                .ForMember(dest => dest.ConsultationResponses, opt => opt.MapFrom(src => src.ConsultationResponses));
+
             CreateMap<CreateConsultationRequestDTO, ConsultationRequest>()
+                .ForMember(dest => dest.ChildId, opt => opt.MapFrom(src => src.ChildId))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "Pending"))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.LastActivityAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.IsSatisfied, opt => opt.MapFrom(src => false));
 
-            CreateMap<ConsultationResponse, ConsultationResponseDTO>();
-            CreateMap<CreateConsultationResponseDTO, ConsultationResponse>()
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            // Consultation Response mappings
+            CreateMap<ConsultationResponse, ConsultationResponseDTO>()
+                .ForMember(dest => dest.ResponseId, opt => opt.MapFrom(src => src.ResponseId))
+                .ForMember(dest => dest.RequestId, opt => opt.MapFrom(src => src.RequestId))
+                .ForMember(dest => dest.Response, opt => opt.MapFrom(src => src.Response))
+                .ForMember(dest => dest.Attachments, opt => opt.MapFrom(src => src.Attachments))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
+                .ForMember(dest => dest.IsFromUser, opt => opt.MapFrom(src => src.IsFromUser))
+                .ForMember(dest => dest.Doctor, opt => opt.MapFrom(src => src.Doctor));
 
-            // Mapping cho ConsultationResponse
+            // Mapping cho AskQuestionDTO -> ConsultationResponse
             CreateMap<AskQuestionDTO, ConsultationResponse>()
                 .ForMember(dest => dest.Response, opt => opt.MapFrom(src => src.Question))
-                .ForMember(dest => dest.Attachments, opt => opt.MapFrom(src => src.Attachments))
-                .ForMember(dest => dest.ParentResponseId, opt => opt.MapFrom(src => src.ReplyToResponseId))
-                .ForMember(dest => dest.IsQuestion, opt => opt.MapFrom(src => true))
-                .ForMember(dest => dest.IsFromUser, opt => opt.MapFrom(src => true))
+                .ForMember(dest => dest.Attachments, opt => opt.MapFrom(src => src.Attachments ?? ""))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
+            // Mapping cho DoctorResponseDTO -> ConsultationResponse
             CreateMap<DoctorResponseDTO, ConsultationResponse>()
                 .ForMember(dest => dest.Response, opt => opt.MapFrom(src => src.Answer))
-                .ForMember(dest => dest.Attachments, opt => opt.MapFrom(src => src.Attachments))
-                .ForMember(dest => dest.ParentResponseId, opt => opt.MapFrom(src => src.QuestionId))
-                .ForMember(dest => dest.IsQuestion, opt => opt.MapFrom(src => false))
-                .ForMember(dest => dest.IsFromUser, opt => opt.MapFrom(src => false))
+                .ForMember(dest => dest.Attachments, opt => opt.MapFrom(src => src.Attachments ?? ""))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 

@@ -1,11 +1,7 @@
-﻿using BusinessLogic.DTOs.Children;
-using BusinessLogic.DTOs.ConsultationResponse;
+﻿using BusinessLogic.DTOs.ConsultationResponse;
 using BusinessLogic.DTOs.User;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BusinessLogic.DTOs.ConsultationRequest
 {
@@ -16,15 +12,14 @@ namespace BusinessLogic.DTOs.ConsultationRequest
         public int ChildId { get; set; }
         public string Description { get; set; }
         public string Status { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime? LastActivityAt { get; set; }
         public bool IsSatisfied { get; set; }
-        public string ClosedReason { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime LastActivityAt { get; set; }
         public DateTime? ClosedAt { get; set; }
-        public int? AssignedDoctorId { get; set; }
-
-        public virtual ChildDTO Child { get; set; }
-        public virtual UserDTO AssignedDoctor { get; set; }
-        public virtual List<ConsultationResponseDTO> ConsultationResponses { get; set; }
+        public string? ClosedReason { get; set; }
+        
+        public BaseUserDTO User { get; set; }
+        public BaseUserDTO AssignedDoctor { get; set; }
+        public ICollection<ConsultationResponseDTO> ConsultationResponses { get; set; }
     }
 }

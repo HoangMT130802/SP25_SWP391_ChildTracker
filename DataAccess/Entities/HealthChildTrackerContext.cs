@@ -13,7 +13,7 @@ public partial class HealthChildTrackerContext : DbContext
         : base(options)
     {
     }
-    public HealthChildTrackerContext() { }
+    public HealthChildTrackerContext () { }
     public virtual DbSet<Appointment> Appointments { get; set; }
 
     public virtual DbSet<Blog> Blogs { get; set; }

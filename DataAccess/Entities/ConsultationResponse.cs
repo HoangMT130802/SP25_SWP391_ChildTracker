@@ -17,15 +17,17 @@ public partial class ConsultationResponse
 
     public string Attachments { get; set; }
 
-    public DateTime CreatedAt { get; set; }
-
-    public DateTime UpdatedAt { get; set; }
-
     public bool IsFromUser { get; set; }
 
     public bool IsQuestion { get; set; }
 
+    public bool? IsSystemMessage { get; set; }
+
     public int? ParentResponseId { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
 
     public virtual User Doctor { get; set; }
 

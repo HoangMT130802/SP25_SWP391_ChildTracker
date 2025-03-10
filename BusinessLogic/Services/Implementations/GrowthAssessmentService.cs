@@ -45,26 +45,34 @@ namespace BusinessLogic.Services.Implementations
             if (record == null)
                 throw new ArgumentNullException(nameof(record));
 
-           
             if (record.Height <= 0 || record.Weight <= 0)
                 throw new ArgumentException("Chiều cao và cân nặng phải lớn hơn 0");
+
             try
             {
-                
+                // Lấy thông tin trẻ
                 var childRepo = _unitOfWork.GetRepository<Child>();
                 var child = await childRepo.GetAsync(c => c.ChildId == record.ChildId);
 
                 if (child == null)
                     throw new KeyNotFoundException($"Không tìm thấy trẻ với ID {record.ChildId}");
 
+                // Kiểm tra và chuẩn hóa giới tính
+                string gender = child.Gender?.Trim().ToUpper();
+                if (string.IsNullOrEmpty(gender) || (gender != "MALE" && gender != "FEMALE"))
+                {
+                    throw new InvalidOperationException($"Giới tính không hợp lệ: {child.Gender}. Giới tính phải là 'Male' hoặc 'Female'");
+                }
+
+                // Chuẩn hóa giới tính theo định dạng chuẩn
+                gender = char.ToUpper(gender[0]) + gender.Substring(1).ToLower();
+
                 // Tính tuổi chính xác tại thời điểm đo
                 decimal exactAgeInMonths = CalculateExactAgeInMonths(child.BirthDate, record.CreatedAt);
 
-                
-                var standards = await GetInterpolatedStandards(
-                    child.Gender,
-                    exactAgeInMonths
-                );
+                _logger.LogInformation($"Đánh giá tăng trưởng cho trẻ {record.ChildId}: {gender}, {exactAgeInMonths} tháng tuổi");
+
+                var standards = await GetInterpolatedStandards(gender, exactAgeInMonths);
 
                 var assessment = new GrowthAssessmentDTO
                 {
@@ -211,67 +219,137 @@ namespace BusinessLogic.Services.Implementations
 */
         private async Task<GrowthStandardsDTO> GetInterpolatedStandards(string gender, decimal exactAgeInMonths)
         {
-            var standardRepo = _unitOfWork.GetRepository<GrowthStandard>();
-
-            // Lấy các tiêu chuẩn gần nhất
-            var lowerAge = (int)Math.Floor(exactAgeInMonths);
-            var upperAge = (int)Math.Ceiling(exactAgeInMonths);
-            var fraction = exactAgeInMonths - lowerAge;
-
-            var standards = new GrowthStandardsDTO();
-            var measurements = new[] { "Height", "Weight", "BMI", "HeadCircumference" };
-
-            foreach (var measurement in measurements)
+            try
             {
-                var lowerStandard = await standardRepo.GetAsync(s =>
-                    s.Gender == gender &&
-                    s.AgeInMonths == lowerAge &&
-                    s.Measurement == measurement);
+                var standardRepo = _unitOfWork.GetRepository<GrowthStandard>();
+                var result = new GrowthStandardsDTO();
+                var measurementTypes = new[] { "Height", "Weight", "BMI", "HeadCircumference" };
 
-                var upperStandard = await standardRepo.GetAsync(s =>
-                    s.Gender == gender &&
-                    s.AgeInMonths == upperAge &&
-                    s.Measurement == measurement);
-
-                if (lowerStandard == null || upperStandard == null)
+                // Xử lý trường hợp đặc biệt cho trẻ dưới 1 tháng tuổi
+                if (exactAgeInMonths < 1)
                 {
-                    throw new InvalidOperationException(
-                        $"Không tìm thấy dữ liệu chuẩn cho {measurement} ở độ tuổi {exactAgeInMonths} tháng"
-                    );
+                    _logger.LogInformation($"Lấy dữ liệu chuẩn cho trẻ sơ sinh, giới tính: {gender}");
+
+                    // Kiểm tra sự tồn tại của dữ liệu trước
+                    var allStandards = await standardRepo.FindAsync(s => 
+                        s.Gender == gender && 
+                        s.AgeInMonths == 0);
+
+                    if (!allStandards.Any())
+                    {
+                        throw new InvalidOperationException(
+                            $"Không tìm thấy bất kỳ dữ liệu chuẩn nào cho trẻ sơ sinh giới tính {gender}"
+                        );
+                    }
+
+                    foreach (var measurementType in measurementTypes)
+                    {
+                        var baseStandard = allStandards.FirstOrDefault(s => s.Measurement == measurementType);
+
+                        if (baseStandard == null)
+                        {
+                            _logger.LogWarning($"Không tìm thấy dữ liệu {measurementType} cho trẻ sơ sinh giới tính {gender}");
+                            throw new InvalidOperationException(
+                                $"Không tìm thấy dữ liệu chuẩn cho {measurementType} ở độ tuổi sơ sinh"
+                            );
+                        }
+
+                        _logger.LogInformation($"Đã tìm thấy dữ liệu {measurementType} cho trẻ sơ sinh: Median = {baseStandard.Median}");
+
+                        switch (measurementType)
+                        {
+                            case "Height":
+                                result.Height = baseStandard;
+                                break;
+                            case "Weight":
+                                result.Weight = baseStandard;
+                                break;
+                            case "BMI":
+                                result.BMI = baseStandard;
+                                break;
+                            case "HeadCircumference":
+                                result.HeadCircumference = baseStandard;
+                                break;
+                        }
+                    }
+
+                    return result;
                 }
 
-                var interpolatedStandard = new GrowthStandard
+                // Xử lý trường hợp trẻ trên 24 tháng
+                if (exactAgeInMonths > 24)
                 {
-                    Gender = gender,
-                    AgeInMonths = (int)exactAgeInMonths,
-                    Measurement = measurement,
-                    Sd3neg = InterpolateValue(lowerStandard.Sd3neg, upperStandard.Sd3neg, fraction),
-                    Sd2neg = InterpolateValue(lowerStandard.Sd2neg, upperStandard.Sd2neg, fraction),
-                    Sd1neg = InterpolateValue(lowerStandard.Sd1neg, upperStandard.Sd1neg, fraction),
-                    Median = InterpolateValue(lowerStandard.Median, upperStandard.Median, fraction),
-                    Sd1pos = InterpolateValue(lowerStandard.Sd1pos, upperStandard.Sd1pos, fraction),
-                    Sd2pos = InterpolateValue(lowerStandard.Sd2pos, upperStandard.Sd2pos, fraction),
-                    Sd3pos = InterpolateValue(lowerStandard.Sd3pos, upperStandard.Sd3pos, fraction)
-                };
-
-                switch (measurement)
-                {
-                    case "Height":
-                        standards.Height = interpolatedStandard;
-                        break;
-                    case "Weight":
-                        standards.Weight = interpolatedStandard;
-                        break;
-                    case "BMI":
-                        standards.BMI = interpolatedStandard;
-                        break;
-                    case "HeadCircumference":
-                        standards.HeadCircumference = interpolatedStandard;
-                        break;
+                    _logger.LogInformation($"Sử dụng dữ liệu chuẩn 24 tháng cho trẻ {exactAgeInMonths} tháng tuổi");
+                    exactAgeInMonths = 24;
                 }
+
+                // Lấy các tiêu chuẩn gần nhất
+                var standardAges = new[] { 0, 3, 6, 9, 12, 18, 24 };
+                var lowerAge = standardAges.Where(age => age <= exactAgeInMonths).Max();
+                var upperAge = standardAges.Where(age => age >= exactAgeInMonths).Min();
+                var fraction = (exactAgeInMonths - lowerAge) / (upperAge - lowerAge);
+
+                _logger.LogInformation($"Nội suy giữa {lowerAge} và {upperAge} tháng với tỷ lệ {fraction}");
+
+                foreach (var measurementType in measurementTypes)
+                {
+                    // Lấy tất cả dữ liệu chuẩn cho khoảng tuổi này
+                    var standards = await standardRepo.FindAsync(s => 
+                        s.Gender == gender && 
+                        (s.AgeInMonths == lowerAge || s.AgeInMonths == upperAge) &&
+                        s.Measurement == measurementType);
+
+                    var lowerStandard = standards.FirstOrDefault(s => s.AgeInMonths == lowerAge);
+                    var upperStandard = standards.FirstOrDefault(s => s.AgeInMonths == upperAge);
+
+                    if (lowerStandard == null || upperStandard == null)
+                    {
+                        _logger.LogWarning($"Không tìm thấy dữ liệu {measurementType} cho độ tuổi {exactAgeInMonths} tháng");
+                        throw new InvalidOperationException(
+                            $"Không tìm thấy dữ liệu chuẩn cho {measurementType} ở độ tuổi {exactAgeInMonths} tháng"
+                        );
+                    }
+
+                    _logger.LogInformation($"Đã tìm thấy dữ liệu {measurementType}: Lower={lowerStandard.Median}, Upper={upperStandard.Median}");
+
+                    var interpolatedStandard = new GrowthStandard
+                    {
+                        Gender = gender,
+                        AgeInMonths = (int)exactAgeInMonths,
+                        Measurement = measurementType,
+                        Sd3neg = InterpolateValue(lowerStandard.Sd3neg, upperStandard.Sd3neg, fraction),
+                        Sd2neg = InterpolateValue(lowerStandard.Sd2neg, upperStandard.Sd2neg, fraction),
+                        Sd1neg = InterpolateValue(lowerStandard.Sd1neg, upperStandard.Sd1neg, fraction),
+                        Median = InterpolateValue(lowerStandard.Median, upperStandard.Median, fraction),
+                        Sd1pos = InterpolateValue(lowerStandard.Sd1pos, upperStandard.Sd1pos, fraction),
+                        Sd2pos = InterpolateValue(lowerStandard.Sd2pos, upperStandard.Sd2pos, fraction),
+                        Sd3pos = InterpolateValue(lowerStandard.Sd3pos, upperStandard.Sd3pos, fraction)
+                    };
+
+                    switch (measurementType)
+                    {
+                        case "Height":
+                            result.Height = interpolatedStandard;
+                            break;
+                        case "Weight":
+                            result.Weight = interpolatedStandard;
+                            break;
+                        case "BMI":
+                            result.BMI = interpolatedStandard;
+                            break;
+                        case "HeadCircumference":
+                            result.HeadCircumference = interpolatedStandard;
+                            break;
+                    }
+                }
+
+                return result;
             }
-
-            return standards;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lấy dữ liệu chuẩn cho trẻ {exactAgeInMonths} tháng tuổi, giới tính {gender}");
+                throw;
+            }
         }
 
         private async Task<List<GrowthRecord>> GetGrowthHistory(int childId, DateTime currentDate)

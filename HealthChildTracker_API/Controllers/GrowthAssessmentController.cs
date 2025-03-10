@@ -5,53 +5,102 @@ using BusinessLogic.Services.Interfaces;
 using DataAccess.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using DataAccess.UnitOfWork;
 
 namespace HealthChildTracker_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class GrowthAssessmentController : ControllerBase
     {
         private readonly IGrowthRecordService _growthRecordService;
         private readonly IGrowthAssessmentService _growthAssessmentService;
+        private readonly IChildService _childService;
         private readonly IMapper _mapper;
         private readonly ILogger<GrowthAssessmentController> _logger;
+        private readonly IUnitOfWork _unitOfWork;
 
         public GrowthAssessmentController(
             IGrowthRecordService growthRecordService,
             IGrowthAssessmentService growthAssessmentService,
+            IChildService childService,
             IMapper mapper,
-            ILogger<GrowthAssessmentController> logger)
+            ILogger<GrowthAssessmentController> logger,
+            IUnitOfWork unitOfWork)
         {
             _growthRecordService = growthRecordService;
             _growthAssessmentService = growthAssessmentService;
+            _childService = childService;
             _mapper = mapper;
             _logger = logger;
+            _unitOfWork = unitOfWork;
         }
 
-        [HttpPost("record-and-assess")]
-        public async Task<IActionResult> CreateAndAssessGrowthRecord([FromBody] CreateGrowthRecordDTO recordDTO)
+        private async Task<bool> ValidateChildAccess(int childId)
         {
             try
             {
-               
-                var recordResult = await _growthRecordService.CreateGrowthRecordAsync(recordDTO);
+                var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(currentUserIdClaim) || !int.TryParse(currentUserIdClaim, out int currentUserId))
+                {
+                    return false;
+                }
 
-                
-                var recordEntity = _mapper.Map<GrowthRecord>(recordResult);
+                if (User.IsInRole("Admin") || User.IsInRole("Doctor"))
+                {
+                    return true;
+                }
+
+                var child = await _childService.GetChildByIdAsync(childId, currentUserId);
+                return child != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [HttpPost("assess/{childId}")]
+        public async Task<IActionResult> CreateAssessment(int childId)
+        {
+            try
+            {
+                if (!await ValidateChildAccess(childId))
+                {
+                    return Forbid("Bạn không có quyền truy cập thông tin của trẻ này");
+                }
+
+                var records = await _growthRecordService.GetAllGrowthRecordsByChildIdAsync(childId);
+                var latestRecordDTO = records.OrderByDescending(r => r.CreatedAt).FirstOrDefault();
+
+                if (latestRecordDTO == null)
+                {
+                    return NotFound($"Không tìm thấy bản ghi tăng trưởng nào cho trẻ {childId}");
+                }
+
+                var recordRepository = _unitOfWork.GetRepository<GrowthRecord>();
+                var recordEntity = await recordRepository.GetAsync(r => r.RecordId == latestRecordDTO.RecordId);
+
+                if (recordEntity == null)
+                {
+                    return NotFound($"Không tìm thấy bản ghi tăng trưởng trong database");
+                }
 
                 var assessment = await _growthAssessmentService.AssessGrowthAsync(recordEntity);
 
                 return Ok(new
                 {
-                    Record = recordResult,
+                    LatestMeasurement = latestRecordDTO,
                     Assessment = assessment,
                     Recommendations = assessment.Recommendations
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi tạo và đánh giá bản ghi tăng trưởng");
+                _logger.LogError(ex, $"Lỗi khi tạo đánh giá cho trẻ {childId}");
                 return StatusCode(500, new { message = "Lỗi server" });
             }
         }
@@ -61,19 +110,30 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
-                var records = await _growthRecordService.GetAllGrowthRecordsByChildIdAsync(childId);
-                var latestRecord = records.OrderByDescending(r => r.CreatedAt).FirstOrDefault();
+                if (!await ValidateChildAccess(childId))
+                {
+                    return Forbid("Bạn không có quyền truy cập thông tin của trẻ này");
+                }
 
-                if (latestRecord == null)
+                var records = await _growthRecordService.GetAllGrowthRecordsByChildIdAsync(childId);
+                var latestRecordDTO = records.OrderByDescending(r => r.CreatedAt).FirstOrDefault();
+
+                if (latestRecordDTO == null)
                     return NotFound($"Không tìm thấy bản ghi tăng trưởng cho trẻ {childId}");
 
-               
-                var recordEntity = _mapper.Map<GrowthRecord>(latestRecord);
+                var recordRepository = _unitOfWork.GetRepository<GrowthRecord>();
+                var recordEntity = await recordRepository.GetAsync(r => r.RecordId == latestRecordDTO.RecordId);
+
+                if (recordEntity == null)
+                {
+                    return NotFound($"Không tìm thấy bản ghi tăng trưởng trong database");
+                }
+
                 var assessment = await _growthAssessmentService.AssessGrowthAsync(recordEntity);
 
                 return Ok(new
                 {
-                    LatestMeasurement = latestRecord,
+                    LatestMeasurement = latestRecordDTO,
                     Assessment = assessment,
                     Recommendations = assessment.Recommendations
                 });

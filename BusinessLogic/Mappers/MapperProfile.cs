@@ -154,6 +154,16 @@ namespace BusinessLogic.Mappers
             CreateMap<UpdateChildDTO, Child>();
 
             CreateMap<GrowthRecord, GrowthRecordDTO>();
+            CreateMap<GrowthRecordDTO, GrowthRecord>()
+                .ForMember(dest => dest.RecordId, opt => opt.MapFrom(src => src.RecordId))
+                .ForMember(dest => dest.ChildId, opt => opt.MapFrom(src => src.ChildId))
+                .ForMember(dest => dest.Height, opt => opt.MapFrom(src => src.Height))
+                .ForMember(dest => dest.Weight, opt => opt.MapFrom(src => src.Weight))
+                .ForMember(dest => dest.HeadCircumference, opt => opt.MapFrom(src => src.HeadCircumference))
+                .ForMember(dest => dest.Bmi, opt => opt.MapFrom(src => src.Bmi))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt));
+
             CreateMap<CreateGrowthRecordDTO, GrowthRecord>();
             CreateMap<UpdateGrowthRecordDTO, GrowthRecord>();
 

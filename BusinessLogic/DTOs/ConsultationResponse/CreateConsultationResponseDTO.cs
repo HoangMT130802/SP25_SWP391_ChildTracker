@@ -9,9 +9,6 @@ namespace BusinessLogic.DTOs.ConsultationResponse
 {
     public class CreateConsultationResponseDTO
     {
-        [Required(ErrorMessage = "Vui lòng chọn yêu cầu tư vấn")]
-        public int RequestId { get; set; }
-
         [Required(ErrorMessage = "Vui lòng nhập nội dung phản hồi")]
         public string Response { get; set; }
 

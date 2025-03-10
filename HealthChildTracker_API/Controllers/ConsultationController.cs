@@ -157,12 +157,11 @@ namespace HealthChildTracker_API.Controllers
                 return StatusCode(500, new { message = "Lỗi server" });
             }
         }
-
         [HttpPost("request/{requestId}/response")]
         [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> CreateResponse(
             int requestId,
-            [FromBody] CreateConsultationResponseDTO response)
+            [FromBody] DoctorResponseDTO responseDto)
         {
             try
             {
@@ -172,8 +171,7 @@ namespace HealthChildTracker_API.Controllers
                     return Unauthorized(new { message = "Không thể xác thực bác sĩ" });
                 }
 
-                response.RequestId = requestId;
-                var createdResponse = await _consultationService.CreateResponseAsync(doctorId.Value, response);
+                var createdResponse = await _consultationService.AddDoctorResponseAsync(requestId, doctorId.Value, responseDto);
                 return Ok(createdResponse);
             }
             catch (KeyNotFoundException ex)
@@ -190,11 +188,10 @@ namespace HealthChildTracker_API.Controllers
                 return StatusCode(500, new { message = "Lỗi server" });
             }
         }
-
         [HttpPost("request/{requestId}/question")]
         public async Task<IActionResult> AskQuestion(
             int requestId,
-            [FromBody] string question)
+            [FromBody] AskQuestionDTO questionDto)
         {
             try
             {
@@ -204,7 +201,7 @@ namespace HealthChildTracker_API.Controllers
                     return Unauthorized(new { message = "Không thể xác thực người dùng" });
                 }
 
-                var response = await _consultationService.AddUserQuestionAsync(requestId, userId.Value, question);
+                var response = await _consultationService.AddQuestionAsync(requestId, userId.Value, questionDto);
                 return Ok(response);
             }
             catch (KeyNotFoundException ex)
@@ -218,6 +215,40 @@ namespace HealthChildTracker_API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi thêm câu hỏi");
+                return StatusCode(500, new { message = "Lỗi server" });
+            }
+        }
+
+        [HttpPost("request/{requestId}/answer/{questionId}")]
+        [Authorize(Roles = "Doctor")]
+        public async Task<IActionResult> AnswerQuestion(
+            int requestId,
+            int questionId,
+            [FromBody] DoctorResponseDTO answerDto)
+        {
+            try
+            {
+                var doctorId = GetCurrentUserId();
+                if (!doctorId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực bác sĩ" });
+                }
+
+                answerDto.QuestionId = questionId; // Đảm bảo questionId từ URL được sử dụng
+                var response = await _consultationService.AddDoctorResponseAsync(requestId, doctorId.Value, answerDto);
+                return Ok(response);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo phản hồi");
                 return StatusCode(500, new { message = "Lỗi server" });
             }
         }

@@ -43,6 +43,7 @@ public partial class HealthChildTrackerContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserMembership> UserMemberships { get; set; }
+
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -202,9 +203,11 @@ public partial class HealthChildTrackerContext : DbContext
             entity.Property(e => e.Response).IsRequired();
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
 
-            entity.HasOne(d => d.Doctor).WithMany(p => p.ConsultationResponses)
-                .HasForeignKey(d => d.DoctorId)
-                .OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.Doctor).WithMany(p => p.ConsultationResponses).HasForeignKey(d => d.DoctorId);
+
+            entity.HasOne(d => d.ParentResponse).WithMany(p => p.InverseParentResponse)
+                .HasForeignKey(d => d.ParentResponseId)
+                .HasConstraintName("FK_ConsultationResponses_ParentResponse");
 
             entity.HasOne(d => d.Request).WithMany(p => p.ConsultationResponses)
                 .HasForeignKey(d => d.RequestId)

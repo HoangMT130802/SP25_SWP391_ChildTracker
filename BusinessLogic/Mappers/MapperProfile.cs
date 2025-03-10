@@ -180,6 +180,25 @@ namespace BusinessLogic.Mappers
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
+            // Mapping cho ConsultationResponse
+            CreateMap<AskQuestionDTO, ConsultationResponse>()
+                .ForMember(dest => dest.Response, opt => opt.MapFrom(src => src.Question))
+                .ForMember(dest => dest.Attachments, opt => opt.MapFrom(src => src.Attachments))
+                .ForMember(dest => dest.ParentResponseId, opt => opt.MapFrom(src => src.ReplyToResponseId))
+                .ForMember(dest => dest.IsQuestion, opt => opt.MapFrom(src => true))
+                .ForMember(dest => dest.IsFromUser, opt => opt.MapFrom(src => true))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+            CreateMap<DoctorResponseDTO, ConsultationResponse>()
+                .ForMember(dest => dest.Response, opt => opt.MapFrom(src => src.Answer))
+                .ForMember(dest => dest.Attachments, opt => opt.MapFrom(src => src.Attachments))
+                .ForMember(dest => dest.ParentResponseId, opt => opt.MapFrom(src => src.QuestionId))
+                .ForMember(dest => dest.IsQuestion, opt => opt.MapFrom(src => false))
+                .ForMember(dest => dest.IsFromUser, opt => opt.MapFrom(src => false))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
             // Appointment mappings
             CreateMap<Appointment, AppointmentDTO>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.FullName))

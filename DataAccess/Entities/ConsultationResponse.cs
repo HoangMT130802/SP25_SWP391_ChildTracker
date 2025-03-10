@@ -11,7 +11,7 @@ public partial class ConsultationResponse
 
     public int RequestId { get; set; }
 
-    public int DoctorId { get; set; }
+    public int? DoctorId { get; set; }
 
     public string Response { get; set; }
 
@@ -25,7 +25,13 @@ public partial class ConsultationResponse
 
     public bool IsQuestion { get; set; }
 
+    public int? ParentResponseId { get; set; }
+
     public virtual User Doctor { get; set; }
+
+    public virtual ICollection<ConsultationResponse> InverseParentResponse { get; set; } = new List<ConsultationResponse>();
+
+    public virtual ConsultationResponse ParentResponse { get; set; }
 
     public virtual ConsultationRequest Request { get; set; }
 }

@@ -13,7 +13,7 @@ public partial class HealthChildTrackerContext : DbContext
         : base(options)
     {
     }
-    public HealthChildTrackerContext () { }
+    public HealthChildTrackerContext() { }
     public virtual DbSet<Appointment> Appointments { get; set; }
 
     public virtual DbSet<Blog> Blogs { get; set; }
@@ -106,10 +106,7 @@ public partial class HealthChildTrackerContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
-            entity.Property(e => e.ImageUrl)
-                .IsRequired()
-                .HasMaxLength(255);
-            entity.Property(e => e.Likes).HasColumnName("likes");
+            entity.Property(e => e.ImageUrl).HasMaxLength(255);
             entity.Property(e => e.Status)
                 .IsRequired()
                 .HasMaxLength(50);
@@ -117,7 +114,6 @@ public partial class HealthChildTrackerContext : DbContext
                 .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("title");
-            entity.Property(e => e.Views).HasColumnName("views");
 
             entity.HasOne(d => d.Author).WithMany(p => p.Blogs)
                 .HasForeignKey(d => d.AuthorId)

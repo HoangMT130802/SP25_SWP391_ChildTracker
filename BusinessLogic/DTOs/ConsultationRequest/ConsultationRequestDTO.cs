@@ -10,6 +10,7 @@ namespace BusinessLogic.DTOs.ConsultationRequest
         public int RequestId { get; set; }
         public int UserId { get; set; }
         public int ChildId { get; set; }
+        public string ChildName { get; set; }
         public string Description { get; set; }
         public string Status { get; set; }
         public bool IsSatisfied { get; set; }

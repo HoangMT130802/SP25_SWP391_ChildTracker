@@ -17,10 +17,6 @@ public partial class Blog
 
     public string ImageUrl { get; set; }
 
-    public int Views { get; set; }
-
-    public int Likes { get; set; }
-
     public string Status { get; set; }
 
     public DateTime CreatedAt { get; set; }

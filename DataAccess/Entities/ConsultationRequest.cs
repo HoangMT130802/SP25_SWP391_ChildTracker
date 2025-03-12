@@ -36,4 +36,5 @@ public partial class ConsultationRequest
     public virtual ICollection<ConsultationResponse> ConsultationResponses { get; set; } = new List<ConsultationResponse>();
 
     public virtual User User { get; set; }
+    
 }

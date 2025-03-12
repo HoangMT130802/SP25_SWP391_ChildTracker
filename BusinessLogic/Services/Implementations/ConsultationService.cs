@@ -294,7 +294,7 @@ namespace BusinessLogic.Services.Implementations
                 var requestRepo = _unitOfWork.GetRepository<ConsultationRequest>();
                 var request = await requestRepo.GetAsync(
                     r => r.RequestId == requestId && (r.UserId == userId || r.AssignedDoctorId == userId),
-                    includeProperties: "User,AssignedDoctor,ConsultationResponses"
+                    includeProperties: "User,Child,AssignedDoctor,ConsultationResponses"
                 );
 
                 if (request == null)

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BusinessLogic.DTOs.Appointment;
 using BusinessLogic.DTOs.Authentication;
+using BusinessLogic.DTOs.Blog;
 using BusinessLogic.DTOs.Children;
 using BusinessLogic.DTOs.ConsultationRequest;
 using BusinessLogic.DTOs.ConsultationResponse;
@@ -172,6 +173,7 @@ namespace BusinessLogic.Mappers
                 .ForMember(dest => dest.RequestId, opt => opt.MapFrom(src => src.RequestId))
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
                 .ForMember(dest => dest.ChildId, opt => opt.MapFrom(src => src.ChildId))
+                .ForMember(dest => dest.ChildName, opt => opt.MapFrom(src => src.Child != null ? src.Child.FullName : null))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
                 .ForMember(dest => dest.IsSatisfied, opt => opt.MapFrom(src => src.IsSatisfied))
@@ -252,6 +254,30 @@ namespace BusinessLogic.Mappers
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
+           
+            // Blog mappings
+            CreateMap<Blog, BlogDTO>()
+                .ForMember(dest => dest.BlogId, opt => opt.MapFrom(src => src.BlogId))
+                .ForMember(dest => dest.AuthorId, opt => opt.MapFrom(src => src.AuthorId))
+                .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author.FullName))
+                .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+                .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
+                .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.ImageUrl))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt));
+
+            CreateMap<CreateBlogDTO, Blog>()
+                .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+                .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
+                .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.ImageUrl))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "Active"))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+            CreateMap<UpdateBlogDTO, Blog>()
+                .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+                .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
+                .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.ImageUrl));
+          
         }
     }
 }

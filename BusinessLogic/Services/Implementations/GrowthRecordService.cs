@@ -30,7 +30,7 @@ namespace BusinessLogic.Services.Implementations
             try
             {
                 var recordRepository = _unitOfWork.GetRepository<GrowthRecord>();
-                var records = await recordRepository.FindAsync(r => r.ChildId == childId);
+                var records = await recordRepository.FindAsync(r => r.ChildId == childId, includeProperties: "Child");
                 return _mapper.Map<IEnumerable<GrowthRecordDTO>>(records);
             }
             catch (Exception ex)
@@ -45,7 +45,7 @@ namespace BusinessLogic.Services.Implementations
             try
             {
                 var recordRepository = _unitOfWork.GetRepository<GrowthRecord>();
-                var record = await recordRepository.GetAsync(r => r.RecordId == recordId);
+                var record = await recordRepository.GetAsync(r => r.RecordId == recordId, includeProperties: "Child");
 
                 if (record == null)
                 {
@@ -89,7 +89,13 @@ namespace BusinessLogic.Services.Implementations
                 await recordRepository.AddAsync(record);
                 await _unitOfWork.SaveChangesAsync();
 
-                return _mapper.Map<GrowthRecordDTO>(record);
+                // Lấy lại record với Child để tính tuổi
+                var savedRecord = await recordRepository.GetAsync(
+                    r => r.RecordId == record.RecordId,
+                    includeProperties: "Child"
+                );
+
+                return _mapper.Map<GrowthRecordDTO>(savedRecord);
             }
             catch (Exception ex)
             {
@@ -103,7 +109,10 @@ namespace BusinessLogic.Services.Implementations
             try
             {
                 var recordRepository = _unitOfWork.GetRepository<GrowthRecord>();
-                var record = await recordRepository.GetAsync(r => r.RecordId == recordId);
+                var record = await recordRepository.GetAsync(
+                    r => r.RecordId == recordId,
+                    includeProperties: "Child"
+                );
 
                 if (record == null)
                 {
@@ -121,7 +130,13 @@ namespace BusinessLogic.Services.Implementations
                 recordRepository.Update(record);
                 await _unitOfWork.SaveChangesAsync();
 
-                return _mapper.Map<GrowthRecordDTO>(record);
+                // Lấy lại record với Child để tính tuổi
+                var updatedRecord = await recordRepository.GetAsync(
+                    r => r.RecordId == recordId,
+                    includeProperties: "Child"
+                );
+
+                return _mapper.Map<GrowthRecordDTO>(updatedRecord);
             }
             catch (Exception ex)
             {

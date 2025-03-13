@@ -9,7 +9,7 @@ namespace BusinessLogic.DTOs.GrowthRecord
 {
     public class UpdateGrowthRecordDTO
     {
-       {
+       
         [Required]
         [Range(30, 200, ErrorMessage = "Chiều cao phải từ 30cm đến 200cm")]
         public decimal Height { get; set; }

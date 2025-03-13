@@ -82,9 +82,8 @@ namespace BusinessLogic.Services.Implementations
                 // Convert height from cm to m
                 decimal heightInMeters = recordDTO.Height / 100;
                 record.Bmi = Math.Round(recordDTO.Weight / (heightInMeters * heightInMeters), 2);
-
-                record.CreatedAt = DateTime.UtcNow;
                 record.UpdatedAt = DateTime.UtcNow;
+                record.Note = recordDTO.Note;
 
                 await recordRepository.AddAsync(record);
                 await _unitOfWork.SaveChangesAsync();
@@ -126,6 +125,7 @@ namespace BusinessLogic.Services.Implementations
                 record.Bmi = Math.Round(record.Weight / (heightInMeters * heightInMeters), 2);
 
                 record.UpdatedAt = DateTime.UtcNow;
+                record.Note = recordDTO.Note;
 
                 recordRepository.Update(record);
                 await _unitOfWork.SaveChangesAsync();

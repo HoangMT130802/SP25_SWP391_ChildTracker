@@ -21,6 +21,6 @@ namespace BusinessLogic.DTOs.GrowthRecord
         [Required]
         [Range(30, 100, ErrorMessage = "Chu vi đầu phải từ 30cm đến 100cm")]
         public decimal HeadCircumference { get; set; }
-         public string Note { get; set; }
+        public string Note { get; set; }
     }
 }

@@ -155,24 +155,26 @@ namespace BusinessLogic.Mappers
             CreateMap<UpdateChildDTO, Child>();
 
             CreateMap<GrowthRecord, GrowthRecordDTO>()
-                .ForMember(dest => dest.RecordId, opt => opt.MapFrom(src => src.RecordId))
-                .ForMember(dest => dest.ChildId, opt => opt.MapFrom(src => src.ChildId))
-                .ForMember(dest => dest.ChildName, opt => opt.MapFrom(src => src.Child != null ? src.Child.FullName : null))
-                .ForMember(dest => dest.Height, opt => opt.MapFrom(src => src.Height))
-                .ForMember(dest => dest.Weight, opt => opt.MapFrom(src => src.Weight))
-                .ForMember(dest => dest.HeadCircumference, opt => opt.MapFrom(src => src.HeadCircumference))
-                .ForMember(dest => dest.Bmi, opt => opt.MapFrom(src => src.Bmi))
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt))
-                      .ForMember(dest => dest.AgeInDays, opt => opt.MapFrom((src, dest) => {
-                          if (src.Child?.BirthDate != null)
-                          {
-                              return (int)(src.CreatedAt - src.Child.BirthDate).TotalDays;
-                          }
-                          return 0;
-                      }));
+                  .ForMember(dest => dest.RecordId, opt => opt.MapFrom(src => src.RecordId))
+                  .ForMember(dest => dest.ChildId, opt => opt.MapFrom(src => src.ChildId))
+                  .ForMember(dest => dest.ChildName, opt => opt.MapFrom(src => src.Child != null ? src.Child.FullName : null))
+                  .ForMember(dest => dest.Height, opt => opt.MapFrom(src => src.Height))
+                  .ForMember(dest => dest.Weight, opt => opt.MapFrom(src => src.Weight))
+                  .ForMember(dest => dest.HeadCircumference, opt => opt.MapFrom(src => src.HeadCircumference))
+                  .ForMember(dest => dest.Bmi, opt => opt.MapFrom(src => src.Bmi))
+                  .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
+                  .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt))
+                  .ForMember(dest => dest.Note, opt => opt.MapFrom(src => src.Note))
+                  .ForMember(dest => dest.AgeInDays, opt => opt.MapFrom((src, dest) => {
+                      if (src.Child?.BirthDate != null)
+                      {
+                          return (int)(src.CreatedAt - src.Child.BirthDate).TotalDays;
+                      }
+                      return 0;
+                  }));
+
             CreateMap<CreateGrowthRecordDTO, GrowthRecord>()
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
             CreateMap<UpdateGrowthRecordDTO, GrowthRecord>()

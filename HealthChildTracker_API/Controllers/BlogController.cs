@@ -92,7 +92,7 @@ namespace HealthChildTracker_API.Controllers
                     return Unauthorized("Không tìm thấy thông tin người dùng");
 
                 await _blogService.DeleteBlogAsync(blogId, userId.Value, userRole);
-                return NoContent();
+                return Ok("Bài biết đã được xoá");
             }
             catch (UnauthorizedAccessException ex)
             {

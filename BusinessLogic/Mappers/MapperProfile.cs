@@ -276,7 +276,7 @@ namespace BusinessLogic.Mappers
             CreateMap<Blog, BlogDTO>()
                 .ForMember(dest => dest.BlogId, opt => opt.MapFrom(src => src.BlogId))
                 .ForMember(dest => dest.AuthorId, opt => opt.MapFrom(src => src.AuthorId))
-                .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author.FullName))
+                .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author != null ? src.Author.FullName : null))
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
                 .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
                 .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.ImageUrl))
@@ -284,6 +284,7 @@ namespace BusinessLogic.Mappers
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt));
 
             CreateMap<CreateBlogDTO, Blog>()
+
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
                 .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
                 .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.ImageUrl))

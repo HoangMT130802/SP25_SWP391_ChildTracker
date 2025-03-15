@@ -27,21 +27,6 @@ namespace HealthChildTracker_API.Controllers
             return Ok(users);
         }
 
-        [HttpGet("{userId}")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetCurrentUserDetailAsync(int currentUserId)
-        {
-            try
-            {
-                var user = await _userService.GetCurrentUserDetailAsync(currentUserId);
-                return Ok(user);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-        }
-
         [HttpGet("profile")]
         public async Task<IActionResult> GetUserProfile()
         {

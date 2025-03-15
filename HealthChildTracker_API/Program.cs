@@ -142,6 +142,7 @@ builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IGrowthAssessmentService, GrowthAssessmentService>();
 builder.Services.AddScoped<IConsultationService, ConsultationService>();
 builder.Services.AddScoped<IBlogService, BlogService>();
+builder.Services.AddScoped<IUserService,UserService>();
 // Đăng ký automapper
 builder.Services.AddAutoMapper(typeof(MapperProfile));
 

@@ -8,6 +8,7 @@ using BusinessLogic.DTOs.ConsultationResponse;
 using BusinessLogic.DTOs.Doctor;
 using BusinessLogic.DTOs.Doctor_Schedule;
 using BusinessLogic.DTOs.GrowthRecord;
+using BusinessLogic.DTOs.GrowthStandard;
 using BusinessLogic.DTOs.User;
 using DataAccess.Entities;
 using System.Linq;
@@ -295,7 +296,8 @@ namespace BusinessLogic.Mappers
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
                 .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
                 .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.ImageUrl));
-          
+
+            CreateMap<GrowthStandard, GrowthStandardDTO>();
         }
     }
 }

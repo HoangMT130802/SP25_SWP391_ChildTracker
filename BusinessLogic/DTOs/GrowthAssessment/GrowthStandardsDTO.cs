@@ -9,9 +9,9 @@ namespace BusinessLogic.DTOs.GrowthAssessment
 {
     public class GrowthStandardsDTO
     {
-        public GrowthStandard Height { get; set; }
-        public GrowthStandard Weight { get; set; }
-        public GrowthStandard BMI { get; set; }
-        public GrowthStandard HeadCircumference { get; set; }
+        public DataAccess.Entities.GrowthStandard Height { get; set; }
+        public DataAccess.Entities.GrowthStandard Weight { get; set; }
+        public DataAccess.Entities.GrowthStandard BMI { get; set; }
+        public DataAccess.Entities.GrowthStandard HeadCircumference { get; set; }
     }
 }

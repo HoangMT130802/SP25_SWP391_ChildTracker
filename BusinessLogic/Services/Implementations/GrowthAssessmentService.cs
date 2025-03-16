@@ -20,16 +20,6 @@ namespace BusinessLogic.Services.Implementations
         private readonly ILogger<GrowthAssessmentService> _logger;
         private readonly IMapper _mapper;
 
-        private const decimal DAYS_PER_MONTH = 30.44M;
-        private const decimal CONCERNING_HEIGHT_VELOCITY = 0.5M;
-        private const decimal CONCERNING_WEIGHT_VELOCITY = 0.1M;
-        private const decimal CONCERNING_BMI_VELOCITY = 0.5M;
-
-        private class MeasurementData
-        {
-            public decimal Value { get; set; }
-            public DateTime CreatedAt { get; set; }
-        }
         public GrowthAssessmentService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
@@ -39,14 +29,11 @@ namespace BusinessLogic.Services.Implementations
             _mapper = mapper;
             _logger = logger;
         }
-  
+
         public async Task<GrowthAssessmentDTO> AssessGrowthAsync(GrowthRecord record)
         {
             if (record == null)
                 throw new ArgumentNullException(nameof(record));
-
-            if (record.Height <= 0 || record.Weight <= 0)
-                throw new ArgumentException("Chiều cao và cân nặng phải lớn hơn 0");
 
             try
             {
@@ -57,83 +44,53 @@ namespace BusinessLogic.Services.Implementations
                 if (child == null)
                     throw new KeyNotFoundException($"Không tìm thấy trẻ với ID {record.ChildId}");
 
-                // Kiểm tra và chuẩn hóa giới tính
+                // Chuẩn hóa giới tính
                 string gender = child.Gender?.Trim().ToUpper();
                 if (string.IsNullOrEmpty(gender) || (gender != "MALE" && gender != "FEMALE"))
                 {
-                    throw new InvalidOperationException($"Giới tính không hợp lệ: {child.Gender}. Giới tính phải là 'Male' hoặc 'Female'");
+                    throw new InvalidOperationException($"Giới tính không hợp lệ: {child.Gender}");
                 }
-
-                // Chuẩn hóa giới tính theo định dạng chuẩn
                 gender = char.ToUpper(gender[0]) + gender.Substring(1).ToLower();
 
-                // Tính tuổi chính xác tại thời điểm đo
-                decimal exactAgeInMonths = CalculateExactAgeInMonths(child.BirthDate, record.CreatedAt);
+                // Tính tuổi tại thời điểm đo (tính theo tháng)
+                int ageInMonths = (int)((decimal)(record.CreatedAt - child.BirthDate).TotalDays / 30.44M);
 
-                _logger.LogInformation($"Đánh giá tăng trưởng cho trẻ {record.ChildId}: {gender}, {exactAgeInMonths} tháng tuổi");
+                // Lấy dữ liệu chuẩn theo độ tuổi và giới tính
+                var standardRepo = _unitOfWork.GetRepository<GrowthStandard>();
+                var standards = await standardRepo.FindAsync(s =>
+                    s.Gender == gender &&
+                    s.AgeInMonths == ageInMonths
+                );
 
-                var standards = await GetInterpolatedStandards(gender, exactAgeInMonths);
+                if (!standards.Any())
+                {
+                    throw new InvalidOperationException($"Không tìm thấy dữ liệu chuẩn cho độ tuổi {ageInMonths} tháng");
+                }
+
+                var heightStandard = standards.FirstOrDefault(s => s.Measurement == "Height");
+                var weightStandard = standards.FirstOrDefault(s => s.Measurement == "Weight");
+                var bmiStandard = standards.FirstOrDefault(s => s.Measurement == "BMI");
+                var headStandard = standards.FirstOrDefault(s => s.Measurement == "HeadCircumference");
 
                 var assessment = new GrowthAssessmentDTO
                 {
                     RecordId = record.RecordId,
                     ChildId = record.ChildId,
-                    ExactAgeInMonths = exactAgeInMonths,
                     MeasurementDate = record.CreatedAt,
-
-                    // Các chỉ số đo được
                     Height = record.Height,
                     Weight = record.Weight,
                     BMI = record.Bmi,
                     HeadCircumference = record.HeadCircumference,
-
-                    // Tính Z-score cho từng chỉ số
-                    ZScores = new GrowthZScoresDTO
+                    Assessments = new GrowthAssessmentsDTO
                     {
-                        Height = CalculateZScore(
-                            record.Height,
-                            standards.Height.Median,
-                            standards.Height.Sd1pos - standards.Height.Median
-                        ),
-
-                        Weight = CalculateZScore(
-                            record.Weight,
-                            standards.Weight.Median,
-                            standards.Weight.Sd1pos - standards.Weight.Median
-                        ),
-
-                        BMI = CalculateZScore(
-                            record.Bmi,
-                            standards.BMI.Median,
-                            standards.BMI.Sd1pos - standards.BMI.Median
-                        ),
-
-                        HeadCircumference = CalculateZScore(
-                            record.HeadCircumference,
-                            standards.HeadCircumference.Median,
-                            standards.HeadCircumference.Sd1pos - standards.HeadCircumference.Median
-                        )
+                        HeightStatus = AssessHeightStatus(record.Height, heightStandard),
+                        WeightStatus = AssessWeightAndBMIStatus(record.Weight, weightStandard),
+                        BMIStatus = AssessWeightAndBMIStatus(record.Bmi, bmiStandard),
+                        HeadCircumferenceStatus = AssessHeadCircumferenceStatus(record.HeadCircumference, headStandard)
                     }
                 };
 
-                // Phân tích xu hướng tăng trưởng
-                var growthHistory = await GetGrowthHistory(record.ChildId, record.CreatedAt);
-                assessment.GrowthTrend = AnalyzeGrowthTrend(growthHistory);
-
-                // Đánh giá tình trạng
-                assessment.Assessments = new GrowthAssessmentsDTO
-                {
-                    HeightStatus = GetNutritionalStatus(assessment.ZScores.Height, "Height"),
-                    WeightStatus = GetNutritionalStatus(assessment.ZScores.Weight, "Weight"),
-                    BMIStatus = GetNutritionalStatus(assessment.ZScores.BMI, "BMI"),
-                    HeadCircumferenceStatus = GetNutritionalStatus(
-                        assessment.ZScores.HeadCircumference,
-                        "HeadCircumference"
-                    )
-                };
-
-                // Đưa ra khuyến nghị
-                assessment.Recommendations = GetDetailedRecommendations(assessment);
+                assessment.Recommendations = GenerateRecommendations(assessment.Assessments);
 
                 return assessment;
             }
@@ -143,322 +100,85 @@ namespace BusinessLogic.Services.Implementations
                 throw;
             }
         }
-        public decimal CalculateZScore(decimal value, decimal median, decimal sd)
+
+        private string AssessHeightStatus(decimal height, GrowthStandard standard)
         {
-            return (value - median) / sd;
-        }
-        public string GetNutritionalStatus(decimal zScore, string measurementType)
-        {
-            switch (measurementType)
-            {
-                case "Height":
-                    if (zScore < -3) return "Thấp còi nghiêm trọng";
-                    if (zScore < -2) return "Thấp còi";
-                    if (zScore < -1) return "Chiều cao thấp";
-                    if (zScore <= 2) return "Chiều cao bình thường";
-                    return "Chiều cao cao";
+            if (standard == null) return "Không có dữ liệu chuẩn";
 
-                case "Weight":
-                    if (zScore < -3) return "Suy dinh dưỡng nặng";
-                    if (zScore < -2) return "Suy dinh dưỡng";
-                    if (zScore <= 1) return "Cân nặng bình thường";
-                    if (zScore <= 2) return "Thừa cân";
-                    return "Béo phì";
-
-                case "BMI":
-                    if (zScore < -3) return "Gầy độ 3";
-                    if (zScore < -2) return "Gầy độ 2";
-                    if (zScore < -1) return "Gầy độ 1";
-                    if (zScore <= 1) return "BMI bình thường";
-                    if (zScore <= 2) return "Thừa cân";
-                    if (zScore <= 3) return "Béo phì độ 1";
-                    return "Béo phì độ 2";
-
-                case "HeadCircumference":
-                    if (zScore < -2) return "Vòng đầu nhỏ";
-                    if (zScore <= 2) return "Vòng đầu bình thường";
-                    return "Vòng đầu lớn";
-
-                default:
-                    return "Không xác định";
-            }
-        }
-        private decimal CalculateExactAgeInMonths(DateTime birthDate, DateTime measurementDate)
-        {
-            var timeSpan = measurementDate - birthDate;
-            return (decimal)timeSpan.TotalDays / DAYS_PER_MONTH;
+            if (height <= standard.Sd3neg) return "Thấp còi nặng";
+            if (height <= standard.Sd2neg) return "Thấp còi";
+            if (height <= standard.Sd1neg) return "Nguy cơ thấp còi";
+            if (height <= standard.Sd1pos) return "Bình thường";
+            if (height <= standard.Sd2pos) return "Chiều cao trung bình khá";
+            if (height <= standard.Sd3pos) return "Cao";
+            return "Rất cao";
         }
 
-        private decimal InterpolateValue(decimal start, decimal end, decimal fraction)
+        private string AssessWeightAndBMIStatus(decimal value, GrowthStandard standard)
         {
-            return start + (end - start) * fraction;
+            if (standard == null) return "Không có dữ liệu chuẩn";
+
+            if (value <= standard.Sd3neg) return "Suy dinh dưỡng nặng";
+            if (value <= standard.Sd2neg) return "Suy dinh dưỡng";
+            if (value <= standard.Sd1neg) return "Nguy cơ suy dinh dưỡng";
+            if (value <= standard.Sd1pos) return "Bình thường";
+            if (value <= standard.Sd2pos) return "Nguy cơ thừa cân/béo phì";
+            if (value <= standard.Sd3pos) return "Béo phì";
+            return "Béo phì nặng";
         }
 
-        private bool IsGrowthConcerning(GrowthTrendDTO trend)
+        private string AssessHeadCircumferenceStatus(decimal headCircumference, GrowthStandard standard)
         {
-            if (trend.HeightVelocity < CONCERNING_HEIGHT_VELOCITY) return true;
-            if (trend.WeightVelocity < CONCERNING_WEIGHT_VELOCITY) return true;
-            if (trend.WeightVelocity > 1M && trend.BMIVelocity > CONCERNING_BMI_VELOCITY) return true;
-            return false;
+            if (standard == null) return "Không có dữ liệu chuẩn";
+
+            if (headCircumference <= standard.Sd3neg) return "Đầu rất nhỏ (Microcephaly)";
+            if (headCircumference <= standard.Sd2neg) return "Đầu hơi nhỏ";
+            if (headCircumference <= standard.Sd1neg) return "Bình thường thấp";
+            if (headCircumference <= standard.Sd1pos) return "Bình thường";
+            if (headCircumference <= standard.Sd2pos) return "Bình thường lớn";
+            if (headCircumference <= standard.Sd3pos) return "Đầu hơi to";
+            return "Đầu rất to (Macrocephaly)";
         }
 
-     /*   private decimal CalculateVelocity<T>(List<T> measurements) where T : class
-        {
-            if (measurements.Count < 2) return 0;
-
-            dynamic firstMeasurement = measurements.First();
-            dynamic lastMeasurement = measurements.Last();
-            var monthsDifference = (lastMeasurement.CreatedAt - firstMeasurement.CreatedAt).TotalDays / DAYS_PER_MONTH;
-
-            if (monthsDifference == 0) return 0;
-
-            decimal firstValue = firstMeasurement.Value;
-            decimal lastValue = lastMeasurement.Value;
-            return (lastValue - firstValue) / monthsDifference;
-        }
-*/
-        private async Task<GrowthStandardsDTO> GetInterpolatedStandards(string gender, decimal exactAgeInMonths)
-        {
-            try
-            {
-                var standardRepo = _unitOfWork.GetRepository<GrowthStandard>();
-                var result = new GrowthStandardsDTO();
-                var measurementTypes = new[] { "Height", "Weight", "BMI", "HeadCircumference" };
-
-                // Xử lý trường hợp đặc biệt cho trẻ dưới 1 tháng tuổi
-                if (exactAgeInMonths < 1)
-                {
-                    _logger.LogInformation($"Lấy dữ liệu chuẩn cho trẻ sơ sinh, giới tính: {gender}");
-
-                    // Kiểm tra sự tồn tại của dữ liệu trước
-                    var allStandards = await standardRepo.FindAsync(s => 
-                        s.Gender == gender && 
-                        s.AgeInMonths == 0);
-
-                    if (!allStandards.Any())
-                    {
-                        throw new InvalidOperationException(
-                            $"Không tìm thấy bất kỳ dữ liệu chuẩn nào cho trẻ sơ sinh giới tính {gender}"
-                        );
-                    }
-
-                    foreach (var measurementType in measurementTypes)
-                    {
-                        var baseStandard = allStandards.FirstOrDefault(s => s.Measurement == measurementType);
-
-                        if (baseStandard == null)
-                        {
-                            _logger.LogWarning($"Không tìm thấy dữ liệu {measurementType} cho trẻ sơ sinh giới tính {gender}");
-                            throw new InvalidOperationException(
-                                $"Không tìm thấy dữ liệu chuẩn cho {measurementType} ở độ tuổi sơ sinh"
-                            );
-                        }
-
-                        _logger.LogInformation($"Đã tìm thấy dữ liệu {measurementType} cho trẻ sơ sinh: Median = {baseStandard.Median}");
-
-                        switch (measurementType)
-                        {
-                            case "Height":
-                                result.Height = baseStandard;
-                                break;
-                            case "Weight":
-                                result.Weight = baseStandard;
-                                break;
-                            case "BMI":
-                                result.BMI = baseStandard;
-                                break;
-                            case "HeadCircumference":
-                                result.HeadCircumference = baseStandard;
-                                break;
-                        }
-                    }
-
-                    return result;
-                }
-
-                // Xử lý trường hợp trẻ trên 24 tháng
-                if (exactAgeInMonths > 24)
-                {
-                    _logger.LogInformation($"Sử dụng dữ liệu chuẩn 24 tháng cho trẻ {exactAgeInMonths} tháng tuổi");
-                    exactAgeInMonths = 24;
-                }
-
-                // Lấy các tiêu chuẩn gần nhất
-                var standardAges = new[] { 0, 3, 6, 9, 12, 18, 24 };
-                var lowerAge = standardAges.Where(age => age <= exactAgeInMonths).Max();
-                var upperAge = standardAges.Where(age => age >= exactAgeInMonths).Min();
-                var fraction = (exactAgeInMonths - lowerAge) / (upperAge - lowerAge);
-
-                _logger.LogInformation($"Nội suy giữa {lowerAge} và {upperAge} tháng với tỷ lệ {fraction}");
-
-                foreach (var measurementType in measurementTypes)
-                {
-                    // Lấy tất cả dữ liệu chuẩn cho khoảng tuổi này
-                    var standards = await standardRepo.FindAsync(s => 
-                        s.Gender == gender && 
-                        (s.AgeInMonths == lowerAge || s.AgeInMonths == upperAge) &&
-                        s.Measurement == measurementType);
-
-                    var lowerStandard = standards.FirstOrDefault(s => s.AgeInMonths == lowerAge);
-                    var upperStandard = standards.FirstOrDefault(s => s.AgeInMonths == upperAge);
-
-                    if (lowerStandard == null || upperStandard == null)
-                    {
-                        _logger.LogWarning($"Không tìm thấy dữ liệu {measurementType} cho độ tuổi {exactAgeInMonths} tháng");
-                        throw new InvalidOperationException(
-                            $"Không tìm thấy dữ liệu chuẩn cho {measurementType} ở độ tuổi {exactAgeInMonths} tháng"
-                        );
-                    }
-
-                    _logger.LogInformation($"Đã tìm thấy dữ liệu {measurementType}: Lower={lowerStandard.Median}, Upper={upperStandard.Median}");
-
-                    var interpolatedStandard = new GrowthStandard
-                    {
-                        Gender = gender,
-                        AgeInMonths = (int)exactAgeInMonths,
-                        Measurement = measurementType,
-                        Sd3neg = InterpolateValue(lowerStandard.Sd3neg, upperStandard.Sd3neg, fraction),
-                        Sd2neg = InterpolateValue(lowerStandard.Sd2neg, upperStandard.Sd2neg, fraction),
-                        Sd1neg = InterpolateValue(lowerStandard.Sd1neg, upperStandard.Sd1neg, fraction),
-                        Median = InterpolateValue(lowerStandard.Median, upperStandard.Median, fraction),
-                        Sd1pos = InterpolateValue(lowerStandard.Sd1pos, upperStandard.Sd1pos, fraction),
-                        Sd2pos = InterpolateValue(lowerStandard.Sd2pos, upperStandard.Sd2pos, fraction),
-                        Sd3pos = InterpolateValue(lowerStandard.Sd3pos, upperStandard.Sd3pos, fraction)
-                    };
-
-                    switch (measurementType)
-                    {
-                        case "Height":
-                            result.Height = interpolatedStandard;
-                            break;
-                        case "Weight":
-                            result.Weight = interpolatedStandard;
-                            break;
-                        case "BMI":
-                            result.BMI = interpolatedStandard;
-                            break;
-                        case "HeadCircumference":
-                            result.HeadCircumference = interpolatedStandard;
-                            break;
-                    }
-                }
-
-                return result;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Lỗi khi lấy dữ liệu chuẩn cho trẻ {exactAgeInMonths} tháng tuổi, giới tính {gender}");
-                throw;
-            }
-        }
-
-        private async Task<List<GrowthRecord>> GetGrowthHistory(int childId, DateTime currentDate)
-        {
-            var recordRepo = _unitOfWork.GetRepository<GrowthRecord>();
-            var records = await recordRepo.FindAsync(
-                r => r.ChildId == childId &&
-                     r.CreatedAt < currentDate &&
-                     r.CreatedAt >= currentDate.AddMonths(-6),
-                includeProperties: "Child"
-            );
-
-            return records.OrderBy(r => r.CreatedAt).ToList();
-        }
-      
-        private GrowthTrendDTO AnalyzeGrowthTrend(List<GrowthRecord> history)
-        {
-            if (!history.Any())
-                return new GrowthTrendDTO { HasSufficientData = false };
-
-            var heightData = history.Select(h => new MeasurementData { Value = h.Height, CreatedAt = h.CreatedAt }).ToList();
-            var weightData = history.Select(h => new MeasurementData { Value = h.Weight, CreatedAt = h.CreatedAt }).ToList();
-            var bmiData = history.Select(h => new MeasurementData { Value = h.Bmi, CreatedAt = h.CreatedAt }).ToList();
-
-            var trend = new GrowthTrendDTO
-            {
-                HasSufficientData = true,
-                HeightVelocity = CalculateVelocity(heightData),
-                WeightVelocity = CalculateVelocity(weightData),
-                BMIVelocity = CalculateVelocity(bmiData),
-                LastMeasurementDate = history.Max(h => h.CreatedAt),
-                NumberOfMeasurements = history.Count
-            };
-
-            trend.IsGrowthConcerning = IsGrowthConcerning(trend);
-
-            return trend;
-        }
-
-        /// <summary>
-        /// Mệt vl
-        /// </summary>
-        /// <param name="measurements"></param>
-        /// <returns></returns>
-
-        private decimal CalculateVelocity(List<MeasurementData> measurements)
-        {
-            if (measurements.Count < 2) return 0;
-
-            var firstMeasurement = measurements.First();
-            var lastMeasurement = measurements.Last();
-
-            // Chuyển đổi TimeSpan thành decimal trước khi chia
-            decimal daysDifference = (decimal)(lastMeasurement.CreatedAt - firstMeasurement.CreatedAt).TotalDays;
-            decimal monthsDifference = daysDifference / DAYS_PER_MONTH;
-
-            if (monthsDifference == 0) return 0;
-
-            return (lastMeasurement.Value - firstMeasurement.Value) / monthsDifference;
-        }
-
-        public string GetDetailedRecommendations(GrowthAssessmentDTO assessment)
+        private string GenerateRecommendations(GrowthAssessmentsDTO assessments)
         {
             var recommendations = new List<string>();
 
             // Đánh giá chiều cao
-            if (assessment.ZScores.Height < -3)
+            if (assessments.HeightStatus.Contains("nặng"))
             {
-                recommendations.Add(" Trẻ đang bị thấp còi nghiêm trọng (độ III):");
                 recommendations.Add("- Cần đưa trẻ đi khám bác sĩ chuyên khoa nhi gấp");
-                recommendations.Add("- Cần kiểm tra các vấn đề về nội tiết và dinh dưỡng");
+                recommendations.Add("- Kiểm tra các vấn đề về nội tiết và dinh dưỡng");
             }
-            else if (assessment.ZScores.Height < -2)
+            else if (assessments.HeightStatus.Contains("Thấp còi"))
             {
-                recommendations.Add(" Trẻ đang bị thấp còi (độ II):");
                 recommendations.Add("- Cần bổ sung vitamin D và canxi");
                 recommendations.Add("- Đảm bảo chế độ ăn đủ protein (thịt, cá, trứng, sữa)");
                 recommendations.Add("- Tăng cường vận động ngoài trời");
             }
 
             // Đánh giá cân nặng và BMI
-            if (assessment.ZScores.BMI > 3)
+            if (assessments.WeightStatus.Contains("nặng") || assessments.BMIStatus.Contains("nặng"))
             {
-                recommendations.Add(" Trẻ đang bị béo phì độ II:");
                 recommendations.Add("- Cần tham vấn bác sĩ về chế độ ăn phù hợp");
-                recommendations.Add("- Giảm thức ăn nhiều đường và chất béo");
-                recommendations.Add("- Tăng cường vận động thể chất mỗi ngày");
+                recommendations.Add("- Theo dõi chế độ ăn và hoạt động thể chất");
             }
-            else if (assessment.ZScores.BMI > 2)
+            else if (assessments.WeightStatus.Contains("Suy dinh dưỡng") || assessments.BMIStatus.Contains("Suy dinh dưỡng"))
             {
-                recommendations.Add(" Trẻ đang bị béo phì độ I:");
-                recommendations.Add("- Điều chỉnh chế độ ăn uống hợp lý");
-                recommendations.Add("- Tăng cường hoạt động thể chất");
+                recommendations.Add("- Cần tăng cường dinh dưỡng");
+                recommendations.Add("- Bổ sung các vitamin và khoáng chất cần thiết");
             }
 
-            // Đánh giá xu hướng tăng trưởng
-            if (assessment.GrowthTrend.HasSufficientData)
+            // Đánh giá vòng đầu
+            if (assessments.HeadCircumferenceStatus.Contains("rất"))
             {
-                if (assessment.GrowthTrend.HeightVelocity < CONCERNING_HEIGHT_VELOCITY)
-                {
-                    recommendations.Add(" Tốc độ tăng chiều cao đang chậm:");
-                    recommendations.Add("- Cần theo dõi sát sao hơn");
-                    recommendations.Add("- Đảm bảo trẻ ngủ đủ giấc");
-                }
+                recommendations.Add("- Cần đưa trẻ đi khám chuyên khoa thần kinh");
+                recommendations.Add("- Theo dõi sự phát triển của não bộ");
             }
 
             if (recommendations.Count == 0)
             {
-                recommendations.Add(" Trẻ đang phát triển bình thường.");
+                recommendations.Add("Trẻ đang phát triển bình thường.");
                 recommendations.Add("- Tiếp tục duy trì chế độ dinh dưỡng và vận động hiện tại");
             }
 

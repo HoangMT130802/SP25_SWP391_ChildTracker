@@ -13,219 +13,118 @@ namespace HealthChildTracker_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class GrowthAssessmentController : ControllerBase
     {
-        private readonly IGrowthRecordService _growthRecordService;
-        private readonly IGrowthAssessmentService _growthAssessmentService;
-        private readonly IChildService _childService;
-        private readonly IMapper _mapper;
+        private readonly IGrowthAssessmentService _assessmentService;
+        private readonly IGrowthRecordService _recordService;
         private readonly ILogger<GrowthAssessmentController> _logger;
-        private readonly IUnitOfWork _unitOfWork;
 
         public GrowthAssessmentController(
-            IGrowthRecordService growthRecordService,
-            IGrowthAssessmentService growthAssessmentService,
-            IChildService childService,
-            IMapper mapper,
-            ILogger<GrowthAssessmentController> logger,
-            IUnitOfWork unitOfWork)
+            IGrowthAssessmentService assessmentService,
+            IGrowthRecordService recordService,
+            ILogger<GrowthAssessmentController> logger)
         {
-            _growthRecordService = growthRecordService;
-            _growthAssessmentService = growthAssessmentService;
-            _childService = childService;
-            _mapper = mapper;
+            _assessmentService = assessmentService;
+            _recordService = recordService;
             _logger = logger;
-            _unitOfWork = unitOfWork;
         }
 
-        private async Task<bool> ValidateChildAccess(int childId)
+        /// <summary>
+        /// Đánh giá tăng trưởng dựa trên bản ghi cụ thể
+        /// </summary>
+        [HttpGet("record/{recordId}")]
+        [ProducesResponseType(typeof(GrowthAssessmentDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<GrowthAssessmentDTO>> AssessGrowthByRecordId(int recordId)
         {
             try
             {
-                var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(currentUserIdClaim) || !int.TryParse(currentUserIdClaim, out int currentUserId))
+                // Lấy growth record
+                var record = await _recordService.GetGrowthRecordByIdAsync(recordId);
+                if (record == null)
                 {
-                    return false;
+                    return NotFound($"Không tìm thấy bản ghi tăng trưởng với ID {recordId}");
                 }
 
-                if (User.IsInRole("Admin") || User.IsInRole("Doctor"))
+                // Chuyển đổi từ DTO sang entity để đánh giá
+                var recordEntity = new GrowthRecord
                 {
-                    return true;
-                }
-
-                var child = await _childService.GetChildByIdAsync(childId, currentUserId);
-                return child != null;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        [HttpPost("assess/{childId}")]
-        public async Task<IActionResult> CreateAssessment(int childId)
-        {
-            try
-            {
-                if (!await ValidateChildAccess(childId))
-                {
-                    return Forbid("Bạn không có quyền truy cập thông tin của trẻ này");
-                }
-
-                var records = await _growthRecordService.GetAllGrowthRecordsByChildIdAsync(childId);
-                var latestRecordDTO = records.OrderByDescending(r => r.CreatedAt).FirstOrDefault();
-
-                if (latestRecordDTO == null)
-                {
-                    return NotFound($"Không tìm thấy bản ghi tăng trưởng nào cho trẻ {childId}");
-                }
-
-                var recordRepository = _unitOfWork.GetRepository<GrowthRecord>();
-                var recordEntity = await recordRepository.GetAsync(r => r.RecordId == latestRecordDTO.RecordId);
-
-                if (recordEntity == null)
-                {
-                    return NotFound($"Không tìm thấy bản ghi tăng trưởng trong database");
-                }
-
-                var assessment = await _growthAssessmentService.AssessGrowthAsync(recordEntity);
-
-                return Ok(new
-                {
-                    LatestMeasurement = latestRecordDTO,
-                    Assessment = assessment,
-                    Recommendations = assessment.Recommendations
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Lỗi khi tạo đánh giá cho trẻ {childId}");
-                return StatusCode(500, new { message = "Lỗi server" });
-            }
-        }
-
-        [HttpGet("latest/{childId}")]
-        public async Task<IActionResult> GetLatestAssessment(int childId)
-        {
-            try
-            {
-                if (!await ValidateChildAccess(childId))
-                {
-                    return Forbid("Bạn không có quyền truy cập thông tin của trẻ này");
-                }
-
-                var records = await _growthRecordService.GetAllGrowthRecordsByChildIdAsync(childId);
-                var latestRecordDTO = records.OrderByDescending(r => r.CreatedAt).FirstOrDefault();
-
-                if (latestRecordDTO == null)
-                    return NotFound($"Không tìm thấy bản ghi tăng trưởng cho trẻ {childId}");
-
-                var recordRepository = _unitOfWork.GetRepository<GrowthRecord>();
-                var recordEntity = await recordRepository.GetAsync(r => r.RecordId == latestRecordDTO.RecordId);
-
-                if (recordEntity == null)
-                {
-                    return NotFound($"Không tìm thấy bản ghi tăng trưởng trong database");
-                }
-
-                var assessment = await _growthAssessmentService.AssessGrowthAsync(recordEntity);
-
-                return Ok(new
-                {
-                    LatestMeasurement = latestRecordDTO,
-                    Assessment = assessment,
-                    Recommendations = assessment.Recommendations
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Lỗi khi lấy đánh giá mới nhất cho trẻ {childId}");
-                return StatusCode(500, new { message = "Lỗi server" });
-            }
-        }
-
-        [HttpGet("history/{childId}")]
-        public async Task<IActionResult> GetAssessmentHistory(
-            int childId,
-            [FromQuery] DateTime? startDate,
-            [FromQuery] DateTime? endDate)
-        {
-            try
-            {
-                var records = await _growthRecordService.GetAllGrowthRecordsByChildIdAsync(childId);
-
-                var filteredRecords = records
-                    .Where(r => (!startDate.HasValue || r.CreatedAt >= startDate) &&
-                               (!endDate.HasValue || r.CreatedAt <= endDate))
-                    .OrderBy(r => r.CreatedAt)
-                    .ToList();
-
-                if (!filteredRecords.Any())
-                    return NotFound($"Không tìm thấy bản ghi tăng trưởng cho trẻ {childId} trong khoảng thời gian yêu cầu");
-
-                var assessments = new List<object>();
-                foreach (var record in filteredRecords)
-                {
-                    var recordEntity = _mapper.Map<GrowthRecord>(record);
-                    var assessment = await _growthAssessmentService.AssessGrowthAsync(recordEntity);
-                    assessments.Add(new
-                    {
-                        Date = record.CreatedAt,
-                        Measurement = record,
-                        Assessment = assessment,
-                        Recommendations = assessment.Recommendations
-                    });
-                }
-
-                var trend = new
-                {
-                    HeightChange = filteredRecords.Last().Height - filteredRecords.First().Height,
-                    WeightChange = filteredRecords.Last().Weight - filteredRecords.First().Weight,
-                    BMIChange = filteredRecords.Last().Bmi - filteredRecords.First().Bmi,
-                    TimePeriod = (filteredRecords.Last().CreatedAt - filteredRecords.First().CreatedAt).Days / 30.0,
-                    NumberOfRecords = filteredRecords.Count
+                    RecordId = record.RecordId,
+                    ChildId = record.ChildId,
+                    Height = record.Height,
+                    Weight = record.Weight,
+                    Bmi = record.Bmi,
+                    HeadCircumference = record.HeadCircumference,
+                    CreatedAt = record.CreatedAt,
+                    UpdatedAt = record.UpdatedAt,
+                    Note = record.Note
                 };
 
-                return Ok(new
-                {
-                    ChildId = childId,
-                    Assessments = assessments,
-                    Trend = trend,
-                    StartDate = filteredRecords.First().CreatedAt,
-                    EndDate = filteredRecords.Last().CreatedAt
-                });
+                // Thực hiện đánh giá
+                var assessment = await _assessmentService.AssessGrowthAsync(recordEntity);
+                return Ok(assessment);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Lỗi khi lấy lịch sử đánh giá cho trẻ {childId}");
-                return StatusCode(500, new { message = "Lỗi server" });
+                _logger.LogError(ex, "Lỗi khi đánh giá tăng trưởng cho bản ghi {RecordId}", recordId);
+                return StatusCode(500, "Đã xảy ra lỗi khi xử lý yêu cầu");
             }
         }
 
-        [HttpGet("assess/{recordId}")]
-        public async Task<IActionResult> AssessSpecificRecord(int recordId)
+        /// <summary>
+        /// Đánh giá tăng trưởng cho bản ghi mới nhất của trẻ
+        /// </summary>
+        [HttpGet("child/{childId}/latest")]
+        [ProducesResponseType(typeof(GrowthAssessmentDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<GrowthAssessmentDTO>> AssessLatestGrowthByChildId(int childId)
         {
             try
             {
-                var recordDTO = await _growthRecordService.GetGrowthRecordByIdAsync(recordId);
-                if (recordDTO == null)
-                    return NotFound($"Không tìm thấy bản ghi {recordId}");
-
-                var recordEntity = _mapper.Map<GrowthRecord>(recordDTO);
-                var assessment = await _growthAssessmentService.AssessGrowthAsync(recordEntity);
-
-                return Ok(new
+                // Lấy tất cả bản ghi của trẻ
+                var records = await _recordService.GetAllGrowthRecordsByChildIdAsync(childId);
+                if (!records.Any())
                 {
-                    Record = recordDTO,
-                    Assessment = assessment,
-                    Recommendations = assessment.Recommendations
-                });
+                    return NotFound($"Không tìm thấy bản ghi tăng trưởng nào cho trẻ với ID {childId}");
+                }
+
+                // Lấy bản ghi mới nhất theo CreatedAt
+                var latestRecord = records
+                    .OrderByDescending(r => r.CreatedAt)
+                    .First();
+
+                // Chuyển đổi từ DTO sang entity để đánh giá
+                var recordEntity = new GrowthRecord
+                {
+                    RecordId = latestRecord.RecordId,
+                    ChildId = latestRecord.ChildId,
+                    Height = latestRecord.Height,
+                    Weight = latestRecord.Weight,
+                    Bmi = latestRecord.Bmi,
+                    HeadCircumference = latestRecord.HeadCircumference,
+                    CreatedAt = latestRecord.CreatedAt,
+                    UpdatedAt = latestRecord.UpdatedAt,
+                    Note = latestRecord.Note
+                };
+
+                // Thực hiện đánh giá
+                var assessment = await _assessmentService.AssessGrowthAsync(recordEntity);
+                return Ok(assessment);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Lỗi khi đánh giá bản ghi {recordId}");
-                return StatusCode(500, new { message = "Lỗi server" });
+                _logger.LogError(ex, "Lỗi khi đánh giá tăng trưởng cho trẻ {ChildId}", childId);
+                return StatusCode(500, "Đã xảy ra lỗi khi xử lý yêu cầu");
             }
         }
     }

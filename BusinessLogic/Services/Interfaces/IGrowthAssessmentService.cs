@@ -12,8 +12,5 @@ namespace BusinessLogic.Services.Interfaces
     public interface IGrowthAssessmentService
     {
         Task<GrowthAssessmentDTO> AssessGrowthAsync(GrowthRecord record);
-        decimal CalculateZScore(decimal value, decimal median, decimal sd);
-        string GetNutritionalStatus(decimal zScore, string measurementType);
-        string GetDetailedRecommendations(GrowthAssessmentDTO assessment);
     }
 }

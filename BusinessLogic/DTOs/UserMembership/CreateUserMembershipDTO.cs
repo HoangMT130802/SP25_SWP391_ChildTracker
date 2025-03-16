@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace BusinessLogic.DTOs.UserMembership
 {
-    public class UserMemebershipDTO
+    public class CreateUserMembershipDTO
     {
+        public int UserId { get; set; }
+        public int MembershipId { get; set; }
     }
+
 }

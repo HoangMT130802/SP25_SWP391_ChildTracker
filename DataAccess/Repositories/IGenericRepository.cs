@@ -21,5 +21,6 @@ namespace DataAccess.Repositories
         Task AddRangeAsync(IEnumerable<T> entities);
         Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
         Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, string includeProperties = "");
+        Task<int> CountAsync(Expression<Func<T, bool>> predicate = null);
     }
 }

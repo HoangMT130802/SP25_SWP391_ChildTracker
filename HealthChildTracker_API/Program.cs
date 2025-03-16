@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.IdentityModel.Tokens.Jwt;
+using BusinessLogic.DTOs.Payment;
+using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -125,7 +127,8 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
-
+// Add PayOS configuration
+builder.Services.Configure<PayOSConfig>(builder.Configuration.GetSection("PayOS"));
 // Đăng ký db context
 builder.Services.AddDbContext<HealthChildTrackerContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -144,6 +147,10 @@ builder.Services.AddScoped<IConsultationService, ConsultationService>();
 builder.Services.AddScoped<IBlogService, BlogService>();
 builder.Services.AddScoped<IUserService,UserService>();
 builder.Services.AddScoped<IGrowthStandardService, GrowthStandardService>();
+builder.Services.AddScoped<IUserMembershipService, UserMembershipService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+// Add HttpClient
+builder.Services.AddHttpClient();
 // Đăng ký automapper
 builder.Services.AddAutoMapper(typeof(MapperProfile));
 

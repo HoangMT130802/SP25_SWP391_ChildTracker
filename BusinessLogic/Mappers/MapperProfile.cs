@@ -11,6 +11,7 @@ using BusinessLogic.DTOs.GrowthAssessment;
 using BusinessLogic.DTOs.GrowthRecord;
 using BusinessLogic.DTOs.GrowthStandard;
 using BusinessLogic.DTOs.User;
+using BusinessLogic.DTOs.UserMembership;
 using DataAccess.Entities;
 using System.Linq;
 using System.Text.Json;
@@ -303,6 +304,14 @@ namespace BusinessLogic.Mappers
             // map growthRecord 
             CreateMap<GrowthRecord, GrowthAssessmentDTO>()
            .ForMember(dest => dest.MeasurementDate, opt => opt.MapFrom(src => src.CreatedAt));
+            // UserMembershipDTO
+            CreateMap<UserMembership, UserMembershipDTO>();
+            CreateMap<CreateUserMembershipDTO, UserMembership>()
+                .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => DateTime.UtcNow.AddMonths(1)))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "Active"))
+                .ForMember(dest => dest.LastRenewalDate, opt => opt.MapFrom(src => DateTime.UtcNow))
+               .ForMember(dest => dest.RemainingConsultations, opt => opt.Ignore());
         }
     }
 }

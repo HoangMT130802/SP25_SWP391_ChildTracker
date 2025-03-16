@@ -88,5 +88,21 @@ namespace DataAccess.Repositories
             }
             return query;
         }
+        public async Task<int> CountAsync(Expression<Func<T, bool>> predicate = null)
+        {
+            try
+            {
+                IQueryable<T> query = _dbSet;
+                if (predicate != null)
+                {
+                    query = query.Where(predicate);
+                }
+                return await query.CountAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Couldn't retrieve count of entities: {ex.Message}");
+            }
+        }
     }
 }

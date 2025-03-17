@@ -12,6 +12,7 @@ using Microsoft.OpenApi.Models;
 using System.IdentityModel.Tokens.Jwt;
 using BusinessLogic.DTOs.Payment;
 using Microsoft.Extensions.Configuration;
+using Net.payOS;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -127,8 +128,12 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
-// Add PayOS configuration
-builder.Services.Configure<PayOSConfig>(builder.Configuration.GetSection("PayOS"));
+// Đăng ký PayOS singleton
+builder.Services.AddSingleton(new PayOS(
+    clientId: builder.Configuration["Environment:PAYOS_CLIENT_ID"],
+    apiKey: builder.Configuration["Environment:PAYOS_API_KEY"],
+    checksumKey: builder.Configuration["Environment:PAYOS_CHECKSUM_KEY"]
+));
 // Đăng ký db context
 builder.Services.AddDbContext<HealthChildTrackerContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));

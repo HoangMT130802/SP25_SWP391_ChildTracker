@@ -11,6 +11,6 @@ namespace BusinessLogic.Services.Interfaces
     {
         Task<PaymentResponseDTO> CreatePaymentAsync(PaymentRequestDTO request);
         Task<bool> VerifyPaymentAsync(string orderId, decimal amount, string checksum);
-        Task<bool> HandlePaymentWebhookAsync(PaymentWebhookDTO webhookData); 
+        Task<bool> HandlePaymentWebhookAsync(PaymentWebhookDTO webhookData);
     }
 }

@@ -90,28 +90,6 @@ namespace HealthChildTracker_API.Controllers
             }
         }
 
-        [HttpPost]
-        [Authorize]
-        [ProducesResponseType(typeof(UserMembershipDTO), StatusCodes.Status201Created)]
-        public async Task<ActionResult<UserMembershipDTO>> CreateUserMembership([FromBody] CreateUserMembershipDTO dto)
-        {
-            try
-            {
-                // Kiểm tra quyền truy cập
-                if (!User.IsInRole("Admin") && int.Parse(User.FindFirst("UserId").Value) != dto.UserId)
-                {
-                    return Forbid();
-                }
-
-                var membership = await _userMembershipService.CreateUserMembershipAsync(dto);
-                return CreatedAtAction(nameof(GetUserMembershipById), new { id = membership.UserMembershipId }, membership);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Lỗi khi tạo user membership mới");
-                return StatusCode(500, "Đã xảy ra lỗi khi xử lý yêu cầu");
-            }
-        }
 
         [HttpPut("{id}/status")]
         [Authorize(Roles = "Admin")]

@@ -128,6 +128,8 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+// Add HttpContextAccessor
+builder.Services.AddHttpContextAccessor();
 // Đăng ký PayOS singleton
 builder.Services.AddSingleton(new PayOS(
     clientId: builder.Configuration["Environment:PAYOS_CLIENT_ID"],

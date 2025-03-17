@@ -84,86 +84,87 @@ namespace BusinessLogic.Services.Implementations
                 _logger.LogError(ex, $"Error creating child for user {userId}");
                 throw;
             }
-        }//
+        }
 
 
-        // Tìm Trẻ theo tên
-        public async Task<List<ChildrenDTO>> SearchNameChild(String search, int userId)
+        public async Task<ChildDTO> UpdateChildAsync(int childId, int userId, UpdateChildDTO childDTO)
         {
-            var result = await _childrenRepository.GetAllQueryable()
-                .Where(ch => ch.FullName.ToLower().Contains(search.ToLower()) && ch.UserId == userId)
-                .ToListAsync();
-            if (result == null)
+            try
             {
-                throw new Exception("Tên trẻ không tồn tại");
+                var childRepository = _unitOfWork.GetRepository<Child>();
+                var child = await childRepository.GetAsync(c => c.ChildId == childId && c.UserId == userId);
+
+                if (child == null)
+                {
+                    throw new KeyNotFoundException($"Child with ID {childId} not found for user {userId}");
+                }
+
+                _mapper.Map(childDTO, child);
+                child.UpdateAt = DateTime.UtcNow;
+
+                childRepository.Update(child);
+                await _unitOfWork.SaveChangesAsync();
+
+                return _mapper.Map<ChildDTO>(child);
             }
-
-            return result.Select(ch => new ChildrenDTO
+            catch (Exception ex)
             {
-                child_id = ch.ChildId,
-                FullName = ch.FullName,
-                ParentName = ch.ParentName,
-                ParentNumber = ch.ParentNumber,
-                birth_date = ch.BirthDate,
-                gender = ch.Gender,
-                BloodType = ch.BloodType,
-                AllergiesNotes = ch.AllergiesNotes,
-                MedicalHistory = ch.MedicalHistory,
-                Status = ch.Status,
-                CreatedAt = ch.CreatedAt,
-                UpdatedAt = ch.UpdateAt
-            }).ToList(); 
+                _logger.LogError(ex, $"Error updating child {childId} for user {userId}");
+                throw;
+            }
         }
 
-        // cập nhật trẻ
-        public async Task<ChildrenDTO> UpdateChildAsync(int userId, int childId, UpdateChildrenDTO updateDTO)
+        public async Task<bool> SoftDeleteChildAsync(int childId, int userId)
         {
-            var user = await _userRepository.GetByIdAsync(userId);
-            var child = await _childrenRepository.GetByIdAsync(childId);
-
-            if (user == null) { throw new Exception("Người dùng không tồn tại"); }
-
-            if (user.Role != "User" && child.UserId != userId) { throw new Exception("Không thể sửa thông tin trẻ"); }
-
-            if (child == null) { throw new Exception("Trẻ không tồn tại"); }
-
-            child.FullName = updateDTO.FullName;
-            child.ParentName = updateDTO.ParentName;
-            child.ParentNumber = updateDTO.ParentNumber;
-            child.BirthDate = updateDTO.birth_date;
-            child.Gender = updateDTO.gender;
-            child.BloodType = updateDTO.BloodType;
-            child.AllergiesNotes = updateDTO.AllergiesNotes;
-            child.MedicalHistory = updateDTO.MedicalHistory;
-            child.UpdateAt = DateTime.UtcNow;
-
-            _childrenRepository.Update(child);
-            await _childrenRepository.SaveAsync();
-
-            return new ChildrenDTO
+            try
             {
-                child_id = child.ChildId,
-                FullName = child.FullName,
-                ParentName = child.ParentName,
-                ParentNumber = child.ParentNumber,
-                BloodType = child.BloodType,
-                AllergiesNotes = child.AllergiesNotes,
-                MedicalHistory = child.MedicalHistory,
-                Status = child.Status,
-                UpdatedAt = child.UpdateAt
-            };
+                var childRepository = _unitOfWork.GetRepository<Child>();
+                var child = await childRepository.GetAsync(c => c.ChildId == childId && c.UserId == userId);
 
+                if (child == null)
+                {
+                    throw new KeyNotFoundException($"Child with ID {childId} not found for user {userId}");
+                }
+
+                // Soft delete
+                child.Status = false;
+                child.UpdateAt = DateTime.UtcNow;
+
+                childRepository.Update(child);
+                await _unitOfWork.SaveChangesAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deleting child {childId} for user {userId}");
+                throw;
+            }
         }
-
-
-        // xóa trẻ
-        public async Task DeleteChildAsync(int childId)
+        public async Task<bool> HardDeleteChildAsync(int childId, int userId)
         {
-            var child = await _childrenRepository.GetByIdAsync(childId);
-            if (child == null) { throw new Exception("Trẻ không tồn tại"); }
+            try
+            {
+                var childRepository = _unitOfWork.GetRepository<Child>();
 
-            _childrenRepository.Delete(child);
-            await _childrenRepository.SaveAsync();
+                var child = await childRepository.GetAsync(c => c.ChildId == childId && c.UserId == userId);
+
+                if (child == null)
+                {
+                    throw new KeyNotFoundException($"Child with ID {childId} not found for user {userId}");
+                }
+
+                childRepository.Delete(child);
+
+                await _unitOfWork.SaveChangesAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error hard deleting child {childId} for user {userId}");
+                throw;
+            }
         }
     }
 }

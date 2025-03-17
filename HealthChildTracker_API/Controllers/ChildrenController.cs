@@ -96,46 +96,80 @@ namespace WebAPI.Controllers
                 _logger.LogError(ex, $"Error creating child for user {userId}");
                 return StatusCode(500, new { message = "Internal server error" });
             }
-        }//
+        }
 
 
-        /// Tìm trẻ theo tên
-        [HttpGet("GetChildById/{userId}/Searchname")]
-        public async Task<ActionResult> GetChildByName(String search, int userId)
+        [HttpPut("{childId}/user/{userId}/Update child")]
+        public async Task<IActionResult> UpdateChild(int childId, int userId, [FromBody] UpdateChildDTO childDTO)
         {
             try
             {
-                var child = await _childrenService.SearchNameChild(search, userId);
+                if (!ValidateUserAccess(userId))
+                {
+                    return Forbid("Bạn không có quyền thực hiện hành động này");
+                }
+
+                var child = await _childService.UpdateChildAsync(childId, userId, childDTO);
                 return Ok(child);
             }
-            catch (Exception ex)
+            catch (KeyNotFoundException ex)
             {
-                return BadRequest(ex.Message);
-            }
-        }
-
-
-        /// Cập nhật thông tin của trẻ
-        [HttpPut("users/{userId}/children/{childId}")]
-        public async Task<ActionResult> UpdateChild(int userId, int childId, [FromBody] UpdateChildrenDTO updateDTO)
-        {
-            try 
-            {
-                var updatechild = await _childrenService.UpdateChildAsync(userId,childId,updateDTO);
-                return Ok(updatechild);
+                return NotFound(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                _logger.LogError(ex, $"Error updating child {childId} for user {userId}");
+                return StatusCode(500, new { message = "Internal server error" });
             }
         }
 
-        /// Xóa trẻ theo ID
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteChild(int childId)
+        [HttpDelete("SoftDelete{childId}/user/{userId}")]
+        public async Task<IActionResult> DeleteChild(int childId, int userId)
         {
-            await _childrenService.DeleteChildAsync(childId);
-            return NoContent();
+            try
+            {
+                if (!ValidateUserAccess(userId))
+                {
+                    return Forbid("Bạn không có quyền thực hiện hành động này");
+                }
+
+                var result = await _childService.SoftDeleteChildAsync(childId, userId);
+                return Ok(new { success = result });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deleting child {childId} for user {userId}");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        [HttpDelete("harddelete/{childId}/user/{userId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> HardDeleteChild(int childId, int userId)
+        {
+            try
+            {
+                if (!ValidateUserAccess(userId))
+                {
+                    return Forbid("Bạn không có quyền thực hiện hành động này");
+                }
+
+                var result = await _childService.HardDeleteChildAsync(childId, userId);
+                return Ok(new { success = result, message = "Child record has been permanently deleted" });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error hard deleting child {childId} for user {userId}");
+                return StatusCode(500, new { message = "Internal server error occurred while trying to delete the child record" });
+            }
         }
     }
 }

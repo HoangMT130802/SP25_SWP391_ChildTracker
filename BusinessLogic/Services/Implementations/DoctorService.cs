@@ -64,81 +64,126 @@ namespace BusinessLogic.Services.Implementations
             }
         }
 
-        // tìm kiếm theo chuyên môn 
-        public async Task<List<DoctorDTO>> SearchSpecialization(String search)
+        public async Task<DoctorDTO> CreateDoctorAsync(CreateDoctorDTO doctorDTO)
         {
-            var result = await _doctorRepository.GetAllQueryable()
-                .Include(d => d.User)
-                .Where(d => d.Specialization.ToLower().Contains(search.ToLower()))
-                .ToListAsync();
-            if (!result.Any())
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                throw new Exception("Không tìm thấy bác sĩ");
-            }
+                var userRepository = _unitOfWork.GetRepository<User>();
 
-            return result.Select(d => new DoctorDTO
-            {
-                FullName = d.User.FullName, // tên bác sĩ từ User
-                DoctorProfile = new DoctorProfileDTO
+                // Kiểm tra username đã tồn tại
+                var existingUsername = await userRepository.GetAsync(u => u.Username == doctorDTO.Username);
+                if (existingUsername != null)
                 {
-                    DoctorProfileId = d.DoctorProfileId,
-                    Specialization = d.Specialization,
-                    Qualification = d.Qualification,
-                    Experience = d.Experience,
-                    LicenseNumber = d.LicenseNumber,
-                    Biography = d.Biography,
-                    AverageRating = d.AverageRating,
-                    TotalRatings = d.TotalRatings
+                    throw new InvalidOperationException("Username đã tồn tại trong hệ thống");
                 }
-            }).ToList();
+
+                // Kiểm tra email đã tồn tại
+                var existingEmail = await userRepository.GetAsync(u => u.Email == doctorDTO.Email);
+                if (existingEmail != null)
+                {
+                    throw new InvalidOperationException("Email đã tồn tại trong hệ thống");
+                }
+
+                // Tạo user mới
+                var user = new User
+                {
+                    Username = doctorDTO.Username,
+                    Email = doctorDTO.Email,
+                    Password = BCrypt.Net.BCrypt.HashPassword(doctorDTO.Password),
+                    FullName = doctorDTO.FullName,
+                    Phone = doctorDTO.PhoneNumber,
+                    Address = doctorDTO.Address,
+                    Role = "Doctor",
+                    Status = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                await userRepository.AddAsync(user);
+                await _unitOfWork.SaveChangesAsync();
+
+                // Tạo doctor profile
+                var profileRepository = _unitOfWork.GetRepository<DoctorProfile>();
+                var profile = new DoctorProfile
+                {
+                    UserId = user.UserId,
+                    Specialization = doctorDTO.Specialization,
+                    Qualification = doctorDTO.Qualification,
+                    Biography = doctorDTO.Biography,
+                    LicenseNumber = doctorDTO.LicenseNumber,
+                    AverageRating = 0,
+                    TotalRatings = 0,
+                    IsVerified = true,
+                };
+
+                await profileRepository.AddAsync(profile);
+                await _unitOfWork.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                // Lấy thông tin doctor vừa tạo
+                var createdDoctor = await GetDoctorByIdAsync(user.UserId);
+                return createdDoctor;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Lỗi khi tạo bác sĩ mới");
+                throw;
+            }
         }
 
-        public async Task CreateDoctorAsync(CreateDoctorDTO doctorDto)
+        public async Task<DoctorDTO> UpdateDoctorAsync(int doctorId, UpdateDoctorDTO doctorDTO)
         {
-            // Kiểm tra xem User có tồn tại không
-            var user = await _userRepository.GetByIdAsync(doctorDto.UserId);
-            if (user == null)
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                throw new KeyNotFoundException("User not found");
+                var userRepository = _unitOfWork.GetRepository<User>();
+                var doctor = await userRepository.GetAsync(u => u.UserId == doctorId && u.Role == "Doctor");
+
+                if (doctor == null)
+                {
+                    throw new KeyNotFoundException($"Không tìm thấy bác sĩ với ID {doctorId}");
+                }
+
+                // Cập nhật thông tin user
+                doctor.FullName = doctorDTO.FullName;
+                doctor.Phone = doctorDTO.PhoneNumber;
+                doctor.Address = doctorDTO.Address;
+                doctor.UpdatedAt = DateTime.UtcNow;
+
+                userRepository.Update(doctor);
+                await _unitOfWork.SaveChangesAsync();
+
+                // Cập nhật doctor profile
+                var profileRepository = _unitOfWork.GetRepository<DoctorProfile>();
+                var profile = await profileRepository.GetAsync(p => p.UserId == doctorId);
+
+                if (profile != null)
+                {
+                    profile.Specialization = doctorDTO.Specialization;
+                    profile.Qualification = doctorDTO.Qualification;
+                    profile.Biography = doctorDTO.Biography;
+                    profile.LicenseNumber = doctorDTO.LicenseNumber;
+                    profile.Experience = doctorDTO.Experience;
+                    profile.IsVerified = true;
+
+                    profileRepository.Update(profile);
+                    await _unitOfWork.SaveChangesAsync();
+                }
+
+                await transaction.CommitAsync();
+
+                // Lấy thông tin doctor sau khi cập nhật
+                return await GetDoctorByIdAsync(doctorId);
             }
-
-            // Cập nhật role của User thành Doctor
-            user.Role = "Doctor";
-            _userRepository.Update(user);
-
-            // Tạo hồ sơ bác sĩ
-            var doctorProfile = new DoctorProfile
+            catch (Exception ex)
             {
-                UserId = doctorDto.UserId,
-                Specialization = doctorDto.Specialization,
-                Qualification = doctorDto.Qualification,
-                Experience = doctorDto.Experience,
-                LicenseNumber = doctorDto.LicenseNumber,
-                Biography = doctorDto.Biography,
-                IsVerified = false
-            };
-
-            await _doctorRepository.AddAsync(doctorProfile);
-            await _doctorRepository.SaveAsync();
-        }
-
-        public async Task UpdateDoctorAsync(int doctorId, UpdateDoctorDTO doctorDto)
-        {
-            var doctor = await _doctorRepository.GetByIdAsync(doctorId);
-            if (doctor == null)
-            {
-                throw new KeyNotFoundException("Doctor not found");
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, $"Lỗi khi cập nhật thông tin bác sĩ {doctorId}");
+                throw;
             }
-
-            doctor.Specialization = doctorDto.Specialization;
-            doctor.Qualification = doctorDto.Qualification;
-            doctor.Experience = doctorDto.Experience;
-            doctor.LicenseNumber = doctorDto.LicenseNumber;
-            doctor.Biography = doctorDto.Biography;
-            doctor.IsVerified = doctorDto.IsVerified;
-
-            _doctorRepository.Update(doctor);
-            await _doctorRepository.SaveAsync();
         }
 
         public async Task DeleteDoctorAsync(int doctorId)

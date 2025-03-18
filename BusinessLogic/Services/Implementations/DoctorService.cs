@@ -186,16 +186,47 @@ namespace BusinessLogic.Services.Implementations
             }
         }
 
-        public async Task DeleteDoctorAsync(int doctorId)
+        public async Task<bool> ToggleDoctorVerification(int doctorId)
         {
-            var doctor = await _doctorRepository.GetByIdAsync(doctorId);
-            if (doctor == null)
+            try
             {
-                throw new KeyNotFoundException("Doctor not found");
-            }
+                var userRepository = _unitOfWork.GetRepository<User>();
+                var doctorProfileRepository = _unitOfWork.GetRepository<DoctorProfile>();
 
-            _doctorRepository.Delete(doctor);
-            await _doctorRepository.SaveAsync();
+                // Lấy thông tin bác sĩ
+                var doctor = await userRepository.GetAsync(
+                    u => u.UserId == doctorId && u.Role == "Doctor",
+                    includeProperties: "DoctorProfiles"
+                );
+
+                if (doctor == null)
+                {
+                    throw new KeyNotFoundException($"Không tìm thấy bác sĩ với ID {doctorId}");
+                }
+
+                if (!doctor.DoctorProfiles.Any())
+                {
+                    throw new InvalidOperationException($"Bác sĩ với ID {doctorId} chưa có hồ sơ");
+                }
+
+                var doctorProfile = doctor.DoctorProfiles.First();
+
+                // Đảo ngược trạng thái xác thực
+                doctorProfile.IsVerified = !doctorProfile.IsVerified;
+                doctor.Status = doctorProfile.IsVerified;
+                doctor.UpdatedAt = DateTime.UtcNow;
+
+                doctorProfileRepository.Update(doctorProfile);
+                userRepository.Update(doctor);
+                await _unitOfWork.SaveChangesAsync();
+
+                return doctorProfile.IsVerified;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi cập nhật trạng thái xác thực của bác sĩ {doctorId}");
+                throw;
+            }
         }
     }
 }

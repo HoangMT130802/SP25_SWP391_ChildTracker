@@ -2,58 +2,61 @@
 using BusinessLogic.DTOs.Doctor;
 using BusinessLogic.Services.Implementations;
 using BusinessLogic.Services.Interfaces;
-using DataAccess.Models;
+using DataAccess.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+
+
 
 namespace API.Controllers
 {
-    [Route("api/doctors")]
+    [Route("api/[controller]")]
     [ApiController]
-    public class DoctorController : ControllerBase
+    [Authorize]
+    public class DoctorsController : ControllerBase
     {
         private readonly IDoctorService _doctorService;
+        private readonly ILogger<DoctorsController> _logger;
 
-        public DoctorController(IDoctorService doctorService)
+        public DoctorsController(IDoctorService doctorService, ILogger<DoctorsController> logger)
         {
             _doctorService = doctorService;
+            _logger = logger;
         }
 
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<DoctorProfile>>> GetAllDoctors()
-        {
-            var doctors = await _doctorService.GetAllDoctorsAsync();
-            return Ok(doctors);
-        }
-
-
-        [HttpGet("{doctorId}")]
-        public async Task<ActionResult<DoctorProfile>> GetDoctorById(int doctorId)
-        {
-            var doctor = await _doctorService.GetDoctorByIdAsync(doctorId);
-            if (doctor == null)
-            {
-                return NotFound(new { message = "Doctor not found" });
-            }
-            return Ok(doctor);
-        }
-
-
-        // tim kiếm bác sĩ theo tên
-        [HttpGet("SearchDoctorByName")]
-        public async Task<ActionResult> GetDoctorByName(string search)
+        public async Task<IActionResult> GetAllDoctors()
         {
             try
             {
-                var doctors = await _doctorService.SearchNameDoctor(search);
+                var doctors = await _doctorService.GetAllDoctorsAsync();
                 return Ok(doctors);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                _logger.LogError(ex, "Error getting all doctors");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+
+        [HttpGet("{doctorId}")]
+        public async Task<IActionResult> GetDoctorById(int doctorId)
+        {
+            try
+            {
+                var doctor = await _doctorService.GetDoctorByIdAsync(doctorId);
+                return Ok(doctor);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting doctor {doctorId}");
+                return StatusCode(500, new { message = "Internal server error" });
             }
         }
 

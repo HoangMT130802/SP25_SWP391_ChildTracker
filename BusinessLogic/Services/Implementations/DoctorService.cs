@@ -1,63 +1,67 @@
 ﻿
+using AutoMapper;
 using BusinessLogic.DTOs.Children;
 using BusinessLogic.DTOs.Doctor;
 using BusinessLogic.Services.Interfaces;
-using DataAccess.Models;
+using DataAccess.Entities;
 using DataAccess.Repositories;
+using DataAccess.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace BusinessLogic.Services.Implementations
 {
     public class DoctorService : IDoctorService
     {
-        private readonly IGenericRepository<DoctorProfile> _doctorRepository;
-        private readonly IGenericRepository<User> _userRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
+        private readonly ILogger<DoctorService> _logger;
 
-        public DoctorService(
-            IGenericRepository<DoctorProfile> doctorRepository,
-            IGenericRepository<User> userRepository)
+        public DoctorService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<DoctorService> logger)
         {
-            _doctorRepository = doctorRepository;
-            _userRepository = userRepository;
+            _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<IEnumerable<DoctorProfile>> GetAllDoctorsAsync()
+        public async Task<IEnumerable<DoctorDTO>> GetAllDoctorsAsync()
         {
-            return await _doctorRepository.GetAllAsync(); 
-        }
-
-        public async Task<DoctorProfile> GetDoctorByIdAsync(int doctorId)
-        {
-            return await _doctorRepository.GetByIdAsync(doctorId);
-        }
-
-        // tìm kiếm theo tên bác sĩ
-        public async Task<List<DoctorDTO>> SearchNameDoctor(String search)
-        {
-            var result = await _userRepository.GetAllQueryable()
-                .Include(u => u.DoctorProfiles)
-                .Where(u => u.FullName.ToLower().Contains(search.ToLower()) && u.Role == "Doctor")
-                .ToListAsync();
-            if (!result.Any()) 
+            try
             {
-                throw new Exception("Không tìm thấy bác sĩ");
+                var userRepository = _unitOfWork.GetRepository<User>();
+                var doctors = await userRepository.FindAsync(
+                    u => u.Role == "Doctor",
+                    includeProperties: "DoctorProfiles");
+                return _mapper.Map<IEnumerable<DoctorDTO>>(doctors);
             }
-
-            return result.Select(u => new DoctorDTO
+            catch (Exception ex)
             {
-                FullName = u.FullName,
-                DoctorProfile = new DoctorProfileDTO
+                _logger.LogError(ex, "Lỗi khi lấy danh sách bác sĩ");
+                throw;
+            }
+        }
+
+        public async Task<DoctorDTO> GetDoctorByIdAsync(int doctorId)
+        {
+            try
+            {
+                var userRepository = _unitOfWork.GetRepository<User>();
+                var doctor = await userRepository.GetAsync(
+                    u => u.UserId == doctorId && u.Role == "Doctor",
+                    includeProperties: "DoctorProfiles");
+
+                if (doctor == null)
                 {
-                    DoctorProfileId = u.DoctorProfiles.First().DoctorProfileId,
-                    Specialization = u.DoctorProfiles.First().Specialization,
-                    Qualification = u.DoctorProfiles.First().Qualification,
-                    Experience = u.DoctorProfiles.First().Experience,
-                    LicenseNumber = u.DoctorProfiles.First().LicenseNumber,
-                    Biography = u.DoctorProfiles.First().Biography,
-                    AverageRating = u.DoctorProfiles.First().AverageRating,
-                    TotalRatings = u.DoctorProfiles.First().TotalRatings
+                    throw new KeyNotFoundException($"Không tìm thấy bác sĩ với ID {doctorId}");
                 }
-            }).ToList();
+
+                return _mapper.Map<DoctorDTO>(doctor);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lấy thông tin bác sĩ {doctorId}");
+                throw;
+            }
         }
 
         // tìm kiếm theo chuyên môn 

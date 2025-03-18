@@ -4,15 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BusinessLogic.DTOs.Doctor;
-using DataAccess.Models;
+using DataAccess.Entities;
 
 namespace BusinessLogic.Services.Interfaces
 {
     public interface IDoctorService
     {
-        Task<IEnumerable<DoctorProfile>> GetAllDoctorsAsync();
-        Task<DoctorProfile> GetDoctorByIdAsync(int doctorId);
-        Task<List<DoctorDTO>> SearchNameDoctor(String search);
+        Task<IEnumerable<DoctorDTO>> GetAllDoctorsAsync();
+        Task<DoctorDTO> GetDoctorByIdAsync(int doctorId);
         Task<List<DoctorDTO>> SearchSpecialization(String search);
         Task CreateDoctorAsync(CreateDoctorDTO doctorDto);
         Task UpdateDoctorAsync(int doctorId, UpdateDoctorDTO doctorDto);

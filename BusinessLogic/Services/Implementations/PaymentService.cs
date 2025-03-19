@@ -72,12 +72,11 @@ namespace BusinessLogic.Services.Implementations
                 // Tạo order code
                 string orderCode = $"{DateTimeOffset.Now.ToUnixTimeMilliseconds()}_{request.UserId}_{request.MembershipId}";
 
-                // Tạo transaction với UserMembershipId
+                // Tạo transaction
                 var transactionRepo = _unitOfWork.GetRepository<DataAccess.Entities.Transaction>();
                 var transaction = new DataAccess.Entities.Transaction
                 {
                     UserId = request.UserId,
-                    UserMembershipId = userMembership.UserMembershipId,
                     Amount = membership.Price,
                     PaymentMethod = "PayOS",
                     TransactionCode = orderCode,
@@ -94,14 +93,16 @@ namespace BusinessLogic.Services.Implementations
                 );
                 var items = new List<ItemData> { item };
 
-                var baseUrl = "http://localhost:5177";
+                // Thay đổi URL webhook thành URL thực tế của bạn
+                var baseUrl = "http://localhost:5175"; // Thay đổi thành domain thực tế của bạn
                 var paymentData = new PaymentData(
                     long.Parse(orderCode.Split('_')[0]),
                     (int)membership.Price,
                     $"Thanh toán gói {membership.Name}",
                     items,
-                    $"{baseUrl}/payment/cancel",
-                    $"{baseUrl}/payment/success"
+                    $"{baseUrl}/payment/cancel", // URL khi người dùng hủy thanh toán
+                    $"{baseUrl}/payment/success", // URL khi thanh toán thành công
+                    $"{baseUrl}/api/payment/webhook" // URL webhook để PayOS gọi về
                 );
 
                 var createPayment = await _payOS.createPaymentLink(paymentData);

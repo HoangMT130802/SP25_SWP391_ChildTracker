@@ -156,6 +156,7 @@ builder.Services.AddScoped<IUserService,UserService>();
 builder.Services.AddScoped<IGrowthStandardService, GrowthStandardService>();
 builder.Services.AddScoped<IUserMembershipService, UserMembershipService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 // Add HttpClient
 builder.Services.AddHttpClient();
 // Đăng ký automapper

@@ -2,6 +2,7 @@
 using BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace HealthChildTracker_API.Controllers
 {
@@ -42,14 +43,21 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
+                _logger.LogInformation($"Nhận được webhook từ PayOS: {JsonSerializer.Serialize(webhookData)}");
+
                 var result = await _paymentService.HandlePaymentWebhookAsync(webhookData);
+
+                _logger.LogInformation($"Kết quả xử lý webhook: {result}");
+
+                // Luôn trả về 200 OK cho PayOS
                 return Ok(new { success = result });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi xử lý webhook");
-                return BadRequest(new { message = ex.Message });
+                return Ok(new { success = false, message = ex.Message });
             }
         }
+
     }
 }

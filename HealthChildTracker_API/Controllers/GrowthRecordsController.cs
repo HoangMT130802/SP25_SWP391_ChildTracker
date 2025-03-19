@@ -36,11 +36,13 @@ namespace HealthChildTracker_API.Controllers
                     return false;
                 }
 
-                if (User.IsInRole("Admin") || User.IsInRole("Doctor")) // Về sau sửa về membership fix lại để có quyền cấp phép cho Doctor nữa
+                // Admin và Doctor có quyền truy cập tất cả
+                if (User.IsInRole("Admin") || User.IsInRole("Doctor"))
                 {
                     return true;
                 }
 
+                // User thường chỉ xem được thông tin của con mình
                 var child = await _childService.GetChildByIdAsync(childId, currentUserId);
                 return child != null;
             }

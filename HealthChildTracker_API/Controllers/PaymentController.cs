@@ -51,23 +51,5 @@ namespace HealthChildTracker_API.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-
-        [HttpGet("verify")]
-        public async Task<IActionResult> VerifyPayment(
-            [FromQuery] string orderId,
-            [FromQuery] decimal amount,
-            [FromQuery] string checksum)
-        {
-            try
-            {
-                var isValid = await _paymentService.VerifyPaymentAsync(orderId, amount, checksum);
-                return Ok(new { isValid });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Lỗi khi verify payment");
-                return BadRequest(new { message = ex.Message });
-            }
-        }
     }
 }

@@ -28,7 +28,7 @@ namespace HealthChildTracker_API.Controllers
             {
                 return false;
             }
-            return currentUserId == userId || User.IsInRole("Admin");
+            return currentUserId == userId || User.IsInRole("Admin") || User.IsInRole("Doctor");
         }
 
         [HttpGet("{userId}/Get children by userId")]

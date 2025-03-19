@@ -344,9 +344,10 @@ namespace BusinessLogic.Mappers
             .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => src.PaymentMethod))
             .ForMember(dest => dest.TransactionCode, opt => opt.MapFrom(src => src.TransactionCode))
             .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
             .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
-            .ForMember(dest => dest.MembershipName, opt => opt.MapFrom(src => src.UserMembership.Membership.Name))
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.UserMembership.Status));
+            .ForMember(dest => dest.MembershipName, opt => opt.MapFrom(src => src.UserMembership.Membership.Name));
+           
         }
     }
 }

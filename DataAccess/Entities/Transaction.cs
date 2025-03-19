@@ -21,6 +21,8 @@ public partial class Transaction
 
     public string Description { get; set; }
 
+    public string Status { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public virtual User User { get; set; }

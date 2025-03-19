@@ -1,191 +1,155 @@
-﻿using System.Security.Claims;
-using BusinessLogic.DTOs.Blog;
+﻿using BusinessLogic.DTOs.Blog;
 using BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
-
-namespace API.Controllers
+namespace HealthChildTracker_API.Controllers
 {
-    [Route("api/blog")]
+    [Route("api/[controller]")]
     [ApiController]
     public class BlogController : ControllerBase
     {
-        private readonly IblogService _blogService;
+        private readonly IBlogService _blogService;
 
-        public BlogController(IblogService blogService)
+        public BlogController(IBlogService blogService)
         {
             _blogService = blogService;
         }
 
-        [HttpGet("AllBlogPending")]
-        [Authorize(Roles = "Admin")]
-        public async Task<ActionResult> GetAllBlogPendingAsync()
+        private int? GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return userIdClaim != null ? int.Parse(userIdClaim) : null;
+        }
+
+        private string GetCurrentUserRole()
+        {
+            return User.FindFirst(ClaimTypes.Role)?.Value;
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Doctor")]
+        public async Task<IActionResult> CreateBlog([FromBody] CreateBlogDTO blogDto)
         {
             try
             {
-                var blogs = await _blogService.GetAllBlogPendingAsync();
-                return Ok(blogs);
+                var userId = GetCurrentUserId();
+                if (!userId.HasValue)
+                    return Unauthorized("Không tìm thấy thông tin người dùng");
+
+                var blog = await _blogService.CreateBlogAsync(userId.Value, blogDto);
+                return CreatedAtAction(nameof(GetBlog), new { blogId = blog.BlogId }, blog);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = ex.Message });
+                return StatusCode(500, $"Lỗi khi tạo blog: {ex.Message}");
             }
         }
 
-
-        [HttpGet("AllBlogApproved")]
-        public async Task<ActionResult> GetAllBlogApprovedAsync()
+        [HttpPut("{blogId}")]
+        [Authorize(Roles = "Doctor")]
+        public async Task<IActionResult> UpdateBlog(int blogId, [FromBody] UpdateBlogDTO blogDto)
         {
             try
             {
-                var blogs = await _blogService.GetAllBlogApprovedAsync();
-                return Ok(blogs);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = ex.Message });
-            }
-        }
+                var userId = GetCurrentUserId();
+                var userRole = GetCurrentUserRole();
+                if (!userId.HasValue || string.IsNullOrEmpty(userRole))
+                    return Unauthorized("Không tìm thấy thông tin người dùng");
 
-
-        [HttpGet("{blogId}")]
-        public async Task<ActionResult> GetBlogById(int blogId)
-        {
-            try
-            {
-                var blog = await _blogService.GetblogByIdAsync(blogId);
+                var blog = await _blogService.UpdateBlogAsync(blogId, userId.Value, userRole, blogDto);
                 return Ok(blog);
             }
-            catch (Exception ex)
+            catch (UnauthorizedAccessException ex)
             {
-                return NotFound(new { message = ex.Message });
+                return Unauthorized(ex.Message);
             }
-        }
-
-
-        [HttpGet("paged")]
-        public async Task<ActionResult> GetAllBlogsPaged([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 3)
-        {
-            try
+            catch (KeyNotFoundException ex)
             {
-                var paginatedBlogs = await _blogService.GetAllBlogPaginatedAsync(pageIndex, pageSize);
-                // Tạo object chứa kết quả phân trang
-                var result = new
-                {
-                    PageIndex = pageIndex,                     // Trang hiện tại
-                    PageSize = pageSize,                       // Số lượng trên mỗi trang
-                    Blogs = paginatedBlogs               // Danh sách các bài viết
-                };
-
-                return Ok(result);
+                return NotFound(ex.Message);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = ex.Message });
+                return StatusCode(500, $"Lỗi khi cập nhật blog: {ex.Message}");
             }
         }
-
-
-        [HttpGet("searchblogkeyword")]
-        public async Task<IActionResult> SearchBlogskeyword([FromQuery] string keyword)
-        {
-            try
-            {
-                var result = await _blogService.SearchBlogByKeyword(keyword);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-        }
-
-
-        [HttpPut("approve/{blogId}")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> ApproveBlog(int blogId)
-        {
-            var result = await _blogService.ApproveBlogAsync(blogId);
-            if (result) return Ok($"Bài viết {blogId} đã được duyệt.");
-            return BadRequest($"Lỗi duyệt bài viết {blogId}.");
-        }
-
-        [HttpPut("reject/{blogId}")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> RejectBlog(int blogId)
-        {
-            var result = await _blogService.RejectBlogAsync(blogId);
-            if (result) return Ok($"Bài viết {blogId} đã từ chối.");
-            return BadRequest($"Lỗi từ chối bài viết {blogId}.");
-        }
-
-
-        [HttpPost("CreateBlog")]
-        [Authorize(Roles = "Admin,Doctor")]
-        public async Task<ActionResult> CreateBlogAsync([FromBody] CreateBlogDTO createBlog)
-        {
-            if (createBlog == null)
-            {
-                return BadRequest(new { message = "Dữ liệu không hợp lệ" });
-            }
-
-            // Lấy userId từ token
-            var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
-            {
-                return Unauthorized(new { message = "Không tìm thấy thông tin người dùng" });
-            }
-
-            int userId = int.Parse(userIdClaim.Value);
-            var createdBlog = await _blogService.CreateBlogAsync(userId, createBlog);
-
-            return Ok(createdBlog);
-        }
-
-
-        [HttpPut("UpdateBlog/{blogId}")]
-        [Authorize(Roles = "Admin,Doctor")]
-        public async Task<ActionResult> UpdateBlogAsync(int blogId, [FromBody] UpdateBlogDTO updateBlog)
-        {
-            if (updateBlog == null)
-            {
-                return BadRequest(new { message = "Dữ liệu không hợp lệ" });
-            }
-
-            // Lấy UserId và Role từ JWT Token
-            int currentUserId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
-            string currentUserRole = User.FindFirst("role")?.Value ?? "";
-
-            try
-            {
-                // Chuyển xuống Service xử lý
-                await _blogService.UpdateBlogAsync(blogId, updateBlog, currentUserId, currentUserRole);
-                return Ok(new { message = "Cập nhật thành công" });
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Forbid(); // HTTP 403: Không có quyền
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-
 
         [HttpDelete("{blogId}")]
         [Authorize(Roles = "Admin,Doctor")]
-        public async Task<ActionResult> DeleteDoctor(int blogId)
+        public async Task<IActionResult> DeleteBlog(int blogId)
         {
             try
             {
-                await _blogService.DeleteBlogAsync(blogId);
-                return Ok(new { message = "Delete successful" });
+                var userId = GetCurrentUserId();
+                var userRole = GetCurrentUserRole();
+                if (!userId.HasValue || string.IsNullOrEmpty(userRole))
+                    return Unauthorized("Không tìm thấy thông tin người dùng");
+
+                await _blogService.DeleteBlogAsync(blogId, userId.Value, userRole);
+                return Ok("Bài biết đã được xoá");
             }
-            catch
+            catch (UnauthorizedAccessException ex)
             {
-                return BadRequest(new { message = "Delete failed" });
+                return Unauthorized(ex.Message);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Lỗi khi xóa blog: {ex.Message}");
+            }
+        }
+
+        [HttpGet("{blogId}")]
+        public async Task<IActionResult> GetBlog(int blogId)
+        {
+            try
+            {
+                var blog = await _blogService.GetBlogByIdAsync(blogId);
+                return Ok(blog);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Lỗi khi lấy thông tin blog: {ex.Message}");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllBlogs()
+        {
+            try
+            {
+                var blogs = await _blogService.GetAllBlogsAsync();
+                return Ok(blogs);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Lỗi khi lấy danh sách blog: {ex.Message}");
+            }
+        }
+
+        [HttpGet("author/{authorId}")]
+        public async Task<IActionResult> GetBlogsByAuthor(int authorId)
+        {
+            try
+            {
+                var blogs = await _blogService.GetBlogsByAuthorIdAsync(authorId);
+                return Ok(blogs);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Lỗi khi lấy danh sách blog của tác giả: {ex.Message}");
             }
         }
     }

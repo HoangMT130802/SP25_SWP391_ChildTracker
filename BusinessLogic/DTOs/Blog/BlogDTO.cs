@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using DataAccess.Entities;
+
+
 
 namespace BusinessLogic.DTOs.Blog
 {
@@ -12,6 +13,7 @@ namespace BusinessLogic.DTOs.Blog
         public int BlogId { get; set; }
 
         public int AuthorId { get; set; }
+        public string AuthorName { get; set; }
 
         public string Title { get; set; }
 
@@ -19,9 +21,7 @@ namespace BusinessLogic.DTOs.Blog
 
         public string ImageUrl { get; set; }
 
-        public int Views { get; set; }
-
-        public int Likes { get; set; }
+        public string Status { get; set; }
 
         public DateTime CreatedAt { get; set; }
     }

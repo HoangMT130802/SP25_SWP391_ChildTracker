@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\HealthChildTracker_API\\HealthChildTracker_API.csproj": {}
+    "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\HealthChildTracker_API\\HealthChildTracker_API.csproj": {}
   },
   "projects": {
-    "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\BusinessLogic\\BusinessLogic.csproj": {
+    "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\BusinessLogic\\BusinessLogic.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\BusinessLogic\\BusinessLogic.csproj",
+        "projectUniqueName": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\BusinessLogic\\BusinessLogic.csproj",
         "projectName": "BusinessLogic",
-        "projectPath": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\BusinessLogic\\BusinessLogic.csproj",
-        "packagesPath": "C:\\Users\\HP\\.nuget\\packages\\",
-        "outputPath": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\BusinessLogic\\obj\\",
+        "projectPath": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\BusinessLogic\\BusinessLogic.csproj",
+        "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\BusinessLogic\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\HP\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\ASUS\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -32,11 +32,11 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\Common\\Common.csproj": {
-                "projectPath": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\Common\\Common.csproj"
+              "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\Common\\Common.csproj": {
+                "projectPath": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\Common\\Common.csproj"
               },
-              "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\DataAccess\\DataAccess.csproj": {
-                "projectPath": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\DataAccess\\DataAccess.csproj"
+              "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\DataAccess\\DataAccess.csproj": {
+                "projectPath": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\DataAccess\\DataAccess.csproj"
               }
             }
           }
@@ -50,11 +50,18 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[9.0.2, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
@@ -71,24 +78,24 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.102/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\Common\\Common.csproj": {
+    "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\Common\\Common.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\Common\\Common.csproj",
+        "projectUniqueName": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\Common\\Common.csproj",
         "projectName": "Common",
-        "projectPath": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\Common\\Common.csproj",
-        "packagesPath": "C:\\Users\\HP\\.nuget\\packages\\",
-        "outputPath": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\Common\\obj\\",
+        "projectPath": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\Common\\Common.csproj",
+        "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\Common\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\HP\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\ASUS\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -114,11 +121,18 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[9.0.2, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
@@ -135,24 +149,24 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.102/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\DataAccess\\DataAccess.csproj": {
+    "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\DataAccess\\DataAccess.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\DataAccess\\DataAccess.csproj",
+        "projectUniqueName": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\DataAccess\\DataAccess.csproj",
         "projectName": "DataAccess",
-        "projectPath": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\DataAccess\\DataAccess.csproj",
-        "packagesPath": "C:\\Users\\HP\\.nuget\\packages\\",
-        "outputPath": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\DataAccess\\obj\\",
+        "projectPath": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\DataAccess\\DataAccess.csproj",
+        "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\DataAccess\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\HP\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\ASUS\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -178,7 +192,8 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
         "net8.0": {
@@ -186,13 +201,21 @@
           "dependencies": {
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
-              "version": "[8.0.13, )"
+              "version": "[9.0.2, )"
             },
             "Microsoft.EntityFrameworkCore.Design": {
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
               "suppressParent": "All",
               "target": "Package",
               "version": "[8.0.13, )"
+            },
+            "Microsoft.EntityFrameworkCore.Relational": {
+              "target": "Package",
+              "version": "[9.0.2, )"
+            },
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[9.0.2, )"
             },
             "Microsoft.EntityFrameworkCore.Tools": {
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
@@ -225,24 +248,24 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.102/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\HealthChildTracker_API\\HealthChildTracker_API.csproj": {
+    "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\HealthChildTracker_API\\HealthChildTracker_API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\HealthChildTracker_API\\HealthChildTracker_API.csproj",
+        "projectUniqueName": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\HealthChildTracker_API\\HealthChildTracker_API.csproj",
         "projectName": "HealthChildTracker_API",
-        "projectPath": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\HealthChildTracker_API\\HealthChildTracker_API.csproj",
-        "packagesPath": "C:\\Users\\HP\\.nuget\\packages\\",
-        "outputPath": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\HealthChildTracker_API\\obj\\",
+        "projectPath": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\HealthChildTracker_API\\HealthChildTracker_API.csproj",
+        "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\HealthChildTracker_API\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\HP\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\ASUS\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -257,8 +280,8 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\BusinessLogic\\BusinessLogic.csproj": {
-                "projectPath": "D:\\FPT_Course\\SWP391\\SP25_SWP391_HealthChildTracker\\BusinessLogic\\BusinessLogic.csproj"
+              "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\BusinessLogic\\BusinessLogic.csproj": {
+                "projectPath": "C:\\Users\\ASUS\\OneDrive\\Tài liệu\\SWP391\\Project SWP391\\SP25_SWP391_ChildTracker\\BusinessLogic\\BusinessLogic.csproj"
               }
             }
           }
@@ -272,12 +295,17 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[9.0.2, )"
+            },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
               "version": "[6.4.0, )"
@@ -302,7 +330,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.102/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

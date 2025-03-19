@@ -19,7 +19,7 @@ namespace BusinessLogic.Services.Implementations
         private readonly ILogger<DoctorScheduleService> _logger;
         private const int SLOT_DURATION = 45;
         
-        private static readonly List<TimeSlot> DEFAULT_SLOTS = new List<TimeSlot>
+        public static readonly List<TimeSlot> DEFAULT_SLOTS = new List<TimeSlot>
         {
             new TimeSlot { SlotId = 1, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(8, 45) },
             new TimeSlot { SlotId = 2, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(9, 45) },

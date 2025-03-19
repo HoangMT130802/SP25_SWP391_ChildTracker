@@ -1,19 +1,8 @@
 ﻿using BusinessLogic.DTOs.Payment;
-using BusinessLogic.DTOs.UserMembership;
 using BusinessLogic.Services.Interfaces;
 using DataAccess.Entities;
 using DataAccess.UnitOfWork;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using System.Security.Cryptography;
-using System.Text;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Json;
-using System.Text;
-using System.Threading.Tasks;
-using System.Text.Json;
 using AutoMapper;
 using Net.payOS;
 using Net.payOS.Types;
@@ -65,27 +54,30 @@ namespace BusinessLogic.Services.Implementations
                     throw new KeyNotFoundException($"Không tìm thấy gói membership với ID {request.MembershipId}");
                 }
 
-                // Kiểm tra xem user đã có membership active chưa
+                // Tạo UserMembership trước với trạng thái Pending
                 var userMembershipRepo = _unitOfWork.GetRepository<UserMembership>();
-                var existingActiveMembership = await userMembershipRepo.GetAsync(
-                    um => um.UserId == request.UserId &&
-                          um.Status == "Active" &&
-                          um.EndDate > DateTime.UtcNow
-                );
-
-                if (existingActiveMembership != null)
+                var userMembership = new UserMembership
                 {
-                    throw new InvalidOperationException("Bạn đã có gói membership đang active. Vui lòng đợi gói hiện tại hết hạn.");
-                }
+                    UserId = request.UserId,
+                    MembershipId = request.MembershipId,
+                    StartDate = DateTime.UtcNow,
+                    EndDate = DateTime.UtcNow.AddDays(membership.Duration),
+                    Status = "Pending",
+                    RemainingConsultations = membership.MaxConsultations,
+                    LastRenewalDate = DateTime.UtcNow
+                };
+                await userMembershipRepo.AddAsync(userMembership);
+                await _unitOfWork.SaveChangesAsync();
 
                 // Tạo order code
                 string orderCode = $"{DateTimeOffset.Now.ToUnixTimeMilliseconds()}_{request.UserId}_{request.MembershipId}";
 
-                // Tạo transaction để lưu thông tin thanh toán
+                // Tạo transaction với UserMembershipId
                 var transactionRepo = _unitOfWork.GetRepository<DataAccess.Entities.Transaction>();
                 var transaction = new DataAccess.Entities.Transaction
                 {
                     UserId = request.UserId,
+                    UserMembershipId = userMembership.UserMembershipId,
                     Amount = membership.Price,
                     PaymentMethod = "PayOS",
                     TransactionCode = orderCode,
@@ -134,6 +126,7 @@ namespace BusinessLogic.Services.Implementations
             }
         }
 
+
         public async Task<bool> HandlePaymentWebhookAsync(PaymentWebhookDTO webhookData)
         {
             using var dbTransaction = await _unitOfWork.BeginTransactionAsync();
@@ -145,48 +138,34 @@ namespace BusinessLogic.Services.Implementations
                 {
                     var transactionRepo = _unitOfWork.GetRepository<DataAccess.Entities.Transaction>();
                     var transaction = await transactionRepo.GetAsync(
-                        t => t.TransactionCode == webhookData.OrderId
+                        t => t.TransactionCode == webhookData.OrderId,
+                        includeProperties: "UserMembership,UserMembership.Membership"
                     );
 
                     if (transaction != null)
                     {
-                        // Lấy thông tin membership từ orderCode
-                        var membershipId = int.Parse(webhookData.OrderId.Split('_')[2]);
-                        var membershipRepo = _unitOfWork.GetRepository<Membership>();
-                        var membership = await membershipRepo.GetAsync(m => m.MembershipId == membershipId);
+                        var userMembership = transaction.UserMembership;
+                        var membership = userMembership.Membership;
 
-                        if (membership != null)
+                        // Cập nhật UserMembership
+                        userMembership.Status = "Active";
+                        userMembership.StartDate = DateTime.UtcNow;
+                        userMembership.EndDate = DateTime.UtcNow.AddDays(membership.Duration);
+                        userMembership.RemainingConsultations = membership.MaxConsultations;
+                        userMembership.LastRenewalDate = DateTime.UtcNow;
+
+                        // Cập nhật Role của User
+                        var userRepo = _unitOfWork.GetRepository<User>();
+                        var user = await userRepo.GetAsync(u => u.UserId == transaction.UserId);
+                        if (user != null)
                         {
-                            // Tạo UserMembership mới với status Active
-                            var userMembershipRepo = _unitOfWork.GetRepository<UserMembership>();
-                            var userMembership = new UserMembership
-                            {
-                                UserId = transaction.UserId,
-                                MembershipId = membershipId,
-                                StartDate = DateTime.UtcNow,
-                                EndDate = DateTime.UtcNow.AddDays(membership.Duration),
-                                Status = "Active",
-                                RemainingConsultations = membership.MaxConsultations,
-                                LastRenewalDate = DateTime.UtcNow
-                            };
-                            await userMembershipRepo.AddAsync(userMembership);
-
-                            // Cập nhật UserMembershipId trong transaction
-                            transaction.UserMembershipId = userMembership.UserMembershipId;
-
-                            // Cập nhật Role của User
-                            var userRepo = _unitOfWork.GetRepository<User>();
-                            var user = await userRepo.GetAsync(u => u.UserId == transaction.UserId);
-                            if (user != null)
-                            {
-                                user.Role = "Member";
-                                userRepo.Update(user);
-                            }
-
-                            await _unitOfWork.SaveChangesAsync();
-                            await dbTransaction.CommitAsync();
-                            return true;
+                            user.Role = "Member";
+                            userRepo.Update(user);
                         }
+
+                        await _unitOfWork.SaveChangesAsync();
+                        await dbTransaction.CommitAsync();
+                        return true;
                     }
                 }
 
@@ -197,6 +176,95 @@ namespace BusinessLogic.Services.Implementations
                 await dbTransaction.RollbackAsync();
                 _logger.LogError(ex, "Lỗi khi xử lý webhook");
                 return false;
+            }
+        }
+        public async Task<bool> CancelPayment(long orderCode)
+        {
+            try
+            {
+                var paymentInfo = await _payOS.cancelPaymentLink(orderCode);
+
+                if (paymentInfo != null)
+                {
+                    // Cập nhật transaction nếu cần
+                    var transactionRepo = _unitOfWork.GetRepository<DataAccess.Entities.Transaction>();
+                    var existingTransaction = await transactionRepo.GetAsync(
+                        t => t.TransactionCode == orderCode.ToString()
+                    );
+
+                    if (existingTransaction != null)
+                    {
+                        existingTransaction.Description += " (Đã hủy)";
+                        transactionRepo.Update(existingTransaction);
+                        await _unitOfWork.SaveChangesAsync();
+                    }
+
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi hủy payment");
+                return false;
+            }
+        }
+
+        public async Task<bool> VerifyPaymentAsync(string orderId, decimal amount, string checksum)
+        {
+            try
+            {
+                var paymentInfo = await _payOS.getPaymentLinkInformation(long.Parse(orderId));
+                return paymentInfo.status.Equals("PAID");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi verify payment");
+                return false;
+            }
+        }
+
+        // Xử lý transactioc ở đây luôn
+        public async Task<IEnumerable<TransactionDTO>> GetUserTransactionsAsync(int userId)
+        {
+            try
+            {
+                var transactionRepo = _unitOfWork.GetRepository<DataAccess.Entities.Transaction>();
+                var transactions = await transactionRepo.FindAsync(
+                    t => t.UserId == userId,
+                    includeProperties: "UserMembership,UserMembership.Membership"
+                );
+
+                var sortedTransactions = transactions.OrderByDescending(t => t.CreatedAt);
+                return _mapper.Map<IEnumerable<TransactionDTO>>(sortedTransactions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy lịch sử giao dịch của user {UserId}", userId);
+                throw;
+            }
+        }
+        public async Task<TransactionDTO> GetTransactionByIdAsync(int transactionId)
+        {
+            try
+            {
+                var transactionRepo = _unitOfWork.GetRepository<DataAccess.Entities.Transaction>();
+                var transaction = await transactionRepo.GetAsync(
+                    t => t.TransactionId == transactionId,
+                    includeProperties: "UserMembership,UserMembership.Membership"
+                );
+
+                if (transaction == null)
+                {
+                    throw new KeyNotFoundException($"Không tìm thấy giao dịch với ID {transactionId}");
+                }
+
+                return _mapper.Map<TransactionDTO>(transaction);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy thông tin giao dịch {TransactionId}", transactionId);
+                throw;
             }
         }
     }

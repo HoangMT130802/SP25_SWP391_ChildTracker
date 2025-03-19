@@ -27,6 +27,7 @@ namespace BusinessLogic.Services.Implementations
             _logger = logger;
         }
 
+
         public async Task<IEnumerable<AppointmentDTO>> GetUserAppointmentsAsync(int userId)
         {
             try
@@ -46,6 +47,16 @@ namespace BusinessLogic.Services.Implementations
                         dto.AppointmentDate = appointment.Schedule.WorkDate;
                         dto.DoctorId = appointment.Schedule.DoctorId;
                         dto.DoctorName = appointment.Schedule.Doctor?.FullName;
+
+                        // Chuyển đổi SlotTime thành thời gian tương ứng
+                        if (int.TryParse(appointment.SlotTime, out int slotId))
+                        {
+                            var timeSlot = DoctorScheduleService.DEFAULT_SLOTS.FirstOrDefault(s => s.SlotId == slotId);
+                            if (timeSlot != null)
+                            {
+                                dto.AppointmentTime = timeSlot.StartTime; // Thêm property này vào AppointmentDTO
+                            }
+                        }
                     }
                 }
 

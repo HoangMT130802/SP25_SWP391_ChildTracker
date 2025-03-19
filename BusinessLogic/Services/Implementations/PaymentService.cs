@@ -111,8 +111,8 @@ namespace BusinessLogic.Services.Implementations
                     (int)membership.Price,
                     $"Thanh toán gói {membership.Name}",
                     items,
-                    $"{baseUrl}/payment/success",
-                    $"{baseUrl}/payment/cancel"
+                    $"{baseUrl}/payment/cancel",
+                    $"{baseUrl}/payment/success"
                 );
 
                 var createPayment = await _payOS.createPaymentLink(paymentData);

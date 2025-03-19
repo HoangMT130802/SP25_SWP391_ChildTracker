@@ -333,7 +333,7 @@ namespace BusinessLogic.Mappers
 
             CreateMap<CreateUserMembershipDTO, UserMembership>()
              .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => DateTime.UtcNow))
-             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "Pending")) // Status là string
+             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "Active")) 
              .ForMember(dest => dest.LastRenewalDate, opt => opt.MapFrom(src => DateTime.UtcNow));
             // transactioc mapper
             CreateMap<Transaction, TransactionDTO>()

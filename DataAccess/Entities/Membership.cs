@@ -21,6 +21,10 @@ public partial class Membership
 
     public int MaxConsultations { get; set; }
 
+    public int MaxAppointment { get; set; }
+
+    public bool CanAccessAppoinment { get; set; }
+
     public bool CanAccessConsultation { get; set; }
 
     public bool Status { get; set; }

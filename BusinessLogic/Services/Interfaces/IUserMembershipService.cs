@@ -16,5 +16,5 @@ namespace BusinessLogic.Services.Interfaces
     Task<bool> UpdateMembershipStatusAsync(int userMembershipId, string status);
     Task<bool> DecrementConsultationCountAsync(int userMembershipId);
     Task<bool> RenewMembershipAsync(int userMembershipId);
-}
+    }
 }

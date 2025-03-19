@@ -39,25 +39,20 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize]
-        [ProducesResponseType(typeof(UserMembershipDTO), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<UserMembershipDTO>> GetUserMembershipById(int id)
         {
             try
             {
                 var membership = await _userMembershipService.GetUserMembershipByIdAsync(id);
-
-                // Kiểm tra quyền truy cập
-                if (!User.IsInRole("Admin") && int.Parse(User.FindFirst("UserId").Value) != membership.UserId)
+                if (membership == null)
                 {
-                    return Forbid();
+                    return NotFound($"Không tìm thấy membership với ID {id}");
                 }
-
                 return Ok(membership);
             }
             catch (KeyNotFoundException ex)
             {
+                _logger.LogWarning(ex, "Không tìm thấy membership với ID {Id}", id);
                 return NotFound(ex.Message);
             }
             catch (Exception ex)

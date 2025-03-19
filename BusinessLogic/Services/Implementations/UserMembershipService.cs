@@ -40,10 +40,18 @@ namespace BusinessLogic.Services.Implementations
 
                 if (membership == null)
                 {
-                    throw new KeyNotFoundException($"Không tìm thấy membership với ID {userMembershipId}");
+                    _logger.LogWarning("Không tìm thấy membership với ID {Id}", userMembershipId);
+                    return null;
                 }
 
-                return _mapper.Map<UserMembershipDTO>(membership);
+                var dto = _mapper.Map<UserMembershipDTO>(membership);
+                if (dto == null)
+                {
+                    _logger.LogError("Lỗi khi map membership {Id} sang DTO", userMembershipId);
+                    throw new InvalidOperationException("Lỗi khi chuyển đổi dữ liệu");
+                }
+
+                return dto;
             }
             catch (Exception ex)
             {

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using BusinessLogic.DTOs;
 using BusinessLogic.DTOs.Appointment;
 using BusinessLogic.DTOs.Authentication;
 using BusinessLogic.DTOs.Blog;
@@ -10,6 +11,7 @@ using BusinessLogic.DTOs.Doctor_Schedule;
 using BusinessLogic.DTOs.GrowthAssessment;
 using BusinessLogic.DTOs.GrowthRecord;
 using BusinessLogic.DTOs.GrowthStandard;
+using BusinessLogic.DTOs.Membership;
 using BusinessLogic.DTOs.User;
 using BusinessLogic.DTOs.UserMembership;
 using DataAccess.Entities;
@@ -304,14 +306,47 @@ namespace BusinessLogic.Mappers
             // map growthRecord 
             CreateMap<GrowthRecord, GrowthAssessmentDTO>()
            .ForMember(dest => dest.MeasurementDate, opt => opt.MapFrom(src => src.CreatedAt));
-            // UserMembershipDTO
-            CreateMap<UserMembership, UserMembershipDTO>();
+            
+            // Membership mappings
+            CreateMap<Membership, MembershipDTO>()
+                .ForMember(dest => dest.MembershipId, opt => opt.MapFrom(src => src.MembershipId))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+                .ForMember(dest => dest.Price, opt => opt.MapFrom(src => src.Price))
+                .ForMember(dest => dest.Duration, opt => opt.MapFrom(src => src.Duration))
+                .ForMember(dest => dest.MaxConsultations, opt => opt.MapFrom(src => src.MaxConsultations))
+                .ForMember(dest => dest.MaxAppointment, opt => opt.MapFrom(src => src.MaxAppointment))
+                .ForMember(dest => dest.CanAccessAppoinment, opt => opt.MapFrom(src => src.CanAccessAppoinment));
+
+            // UserMembership mappings
+            CreateMap<UserMembership, UserMembershipDTO>()
+      .ForMember(dest => dest.UserMembershipId, opt => opt.MapFrom(src => src.UserMembershipId))
+      .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+      .ForMember(dest => dest.MembershipId, opt => opt.MapFrom(src => src.MembershipId))
+      .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
+      .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))
+      .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status)) // Status là string
+      .ForMember(dest => dest.RemainingConsultations, opt => opt.MapFrom(src => src.RemainingConsultations))
+      .ForMember(dest => dest.LastRenewalDate, opt => opt.MapFrom(src => src.LastRenewalDate))
+      .ForMember(dest => dest.Membership, opt => opt.MapFrom(src => src.Membership))
+      .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User));
+
             CreateMap<CreateUserMembershipDTO, UserMembership>()
-                .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => DateTime.UtcNow))
-                .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => DateTime.UtcNow.AddMonths(1)))
-                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "Active"))
-                .ForMember(dest => dest.LastRenewalDate, opt => opt.MapFrom(src => DateTime.UtcNow))
-               .ForMember(dest => dest.RemainingConsultations, opt => opt.Ignore());
+             .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => DateTime.UtcNow))
+             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "Pending")) // Status là string
+             .ForMember(dest => dest.LastRenewalDate, opt => opt.MapFrom(src => DateTime.UtcNow));
+            // transactioc mapper
+            CreateMap<Transaction, TransactionDTO>()
+     .ForMember(dest => dest.TransactionId, opt => opt.MapFrom(src => src.TransactionId))
+     .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+     .ForMember(dest => dest.UserMembershipId, opt => opt.MapFrom(src => src.UserMembershipId))
+     .ForMember(dest => dest.Amount, opt => opt.MapFrom(src => src.Amount))
+     .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => src.PaymentMethod))
+     .ForMember(dest => dest.TransactionCode, opt => opt.MapFrom(src => src.TransactionCode))
+     .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+     .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
+     .ForMember(dest => dest.MembershipName, opt => opt.MapFrom(src => src.UserMembership.Membership.Name))
+     .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.UserMembership.Status));
         }
     }
 }

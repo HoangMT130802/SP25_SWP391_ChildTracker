@@ -1,4 +1,5 @@
-﻿using BusinessLogic.DTOs.User;
+﻿using BusinessLogic.DTOs.Membership;
+using BusinessLogic.DTOs.User;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +18,7 @@ namespace BusinessLogic.DTOs.UserMembership
         public string Status { get; set; }
         public int RemainingConsultations { get; set; }
         public DateTime LastRenewalDate { get; set; }
-        public UserMembershipDTO Membership { get; set; }
+        public MembershipDTO Membership { get; set; }  
         public UserDTO User { get; set; }
     }
 }

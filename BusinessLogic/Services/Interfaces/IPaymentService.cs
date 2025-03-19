@@ -1,4 +1,5 @@
-﻿using BusinessLogic.DTOs.Payment;
+﻿using BusinessLogic.DTOs;
+using BusinessLogic.DTOs.Payment;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,5 +13,7 @@ namespace BusinessLogic.Services.Interfaces
         Task<PaymentResponseDTO> CreatePaymentAsync(PaymentRequestDTO request);
         Task<bool> VerifyPaymentAsync(string orderId, decimal amount, string checksum);
         Task<bool> HandlePaymentWebhookAsync(PaymentWebhookDTO webhookData);
+        Task<IEnumerable<TransactionDTO>> GetUserTransactionsAsync(int userId);
+        Task<TransactionDTO> GetTransactionByIdAsync(int transactionId);
     }
 }

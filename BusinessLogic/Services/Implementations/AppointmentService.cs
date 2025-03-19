@@ -120,12 +120,81 @@ namespace BusinessLogic.Services.Implementations
                 throw;
             }
         }
-
         public async Task<AppointmentDTO> CreateAppointmentAsync(CreateAppointmentDTO appointmentDTO)
         {
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
+                // 1. Kiểm tra membership active và quyền đặt lịch
+                var userMembershipRepo = _unitOfWork.GetRepository<UserMembership>();
+
+                // Lấy tất cả membership của user để debug
+                var allUserMemberships = await userMembershipRepo.FindAsync(
+                    x => x.UserId == appointmentDTO.UserId,
+                    includeProperties: "Membership"
+                );
+
+                _logger.LogInformation($"Tìm thấy {allUserMemberships.Count()} membership cho user {appointmentDTO.UserId}");
+
+                // Kiểm tra membership active
+                var userMembership = allUserMemberships.FirstOrDefault(x =>
+                    x.Status == "Active" && // Status của UserMembership là string
+                    x.EndDate > DateTime.UtcNow
+                );
+
+                if (userMembership == null)
+                {
+                    _logger.LogWarning($"User {appointmentDTO.UserId} không có membership active");
+                    throw new InvalidOperationException("Bạn cần đăng ký gói membership để đặt lịch");
+                }
+
+                if (!userMembership.Membership.Status) // Status của Membership là bool
+                {
+                    _logger.LogWarning($"User {appointmentDTO.UserId} có membership không có quyền đặt lịch");
+                    throw new InvalidOperationException("Gói membership của bạn không có quyền đặt lịch");
+                }
+
+                if (!userMembership.Membership.CanAccessAppoinment)
+                {
+                    _logger.LogWarning($"User {appointmentDTO.UserId} có membership không có quyền đặt lịch");
+                    throw new InvalidOperationException("Gói membership của bạn không có quyền đặt lịch");
+                }
+
+                // 2. Kiểm tra số lần đặt lịch trong tháng
+                var firstDayOfMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+                var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
+
+                var appointmentRepo = _unitOfWork.GetRepository<Appointment>();
+                var appointmentThisMonth = await appointmentRepo.FindAsync(
+                    a => a.UserId == appointmentDTO.UserId &&
+                         a.CreatedAt >= firstDayOfMonth &&
+                         a.CreatedAt <= lastDayOfMonth &&
+                         a.Status != "Cancelled"
+                );
+
+                if (appointmentThisMonth.Count() >= 3)
+                {
+                    throw new InvalidOperationException("Bạn đã đạt giới hạn đặt lịch trong tháng này (tối đa 3 lần/tháng)");
+                }
+
+                // 3. Kiểm tra khoảng cách giữa các lần đặt lịch
+                var previousAppointments = await appointmentRepo.FindAsync(
+                    a => a.UserId == appointmentDTO.UserId &&
+                         a.Status != "Cancelled"
+                );
+
+                var lastAppointment = previousAppointments
+                    .OrderByDescending(x => x.CreatedAt)
+                    .FirstOrDefault();
+
+                if (lastAppointment != null)
+                {
+                    var daysSinceLastAppointment = (DateTime.UtcNow - lastAppointment.CreatedAt).Days;
+                    if (daysSinceLastAppointment < 7)
+                    {
+                        throw new InvalidOperationException($"Vui lòng đợi thêm {7 - daysSinceLastAppointment} ngày nữa để đặt lịch tiếp");
+                    }
+                }
                 // Lấy thông tin lịch bác sĩ
                 var scheduleRepository = _unitOfWork.GetRepository<DoctorSchedule>();
                 var schedule = await scheduleRepository.GetAsync(

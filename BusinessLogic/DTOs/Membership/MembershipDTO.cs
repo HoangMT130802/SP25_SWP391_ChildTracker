@@ -11,11 +11,10 @@ namespace BusinessLogic.DTOs.Membership
         public int MembershipId { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
-        public int Duration { get; set; }
         public decimal Price { get; set; }
-        public int MaxChildren { get; set; }
+        public int Duration { get; set; }
         public int MaxConsultations { get; set; }
-        public bool CanAccessConsultation { get; set; }
-        public bool Status { get; set; }
+        public int MaxAppointment { get; set; }
+        public bool CanAccessAppoinment { get; set; }
     }
 }

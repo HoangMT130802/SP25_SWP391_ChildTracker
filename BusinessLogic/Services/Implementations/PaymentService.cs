@@ -21,29 +21,59 @@ namespace BusinessLogic.Services.Implementations
         private readonly PayOS _payOS;
         private const string BASE_URL = "http://localhost:5175";
 
+        public PaymentService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            ILogger<PaymentService> logger,
+            PayOS payOS)
+        {
+            _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _payOS = payOS ?? throw new ArgumentNullException(nameof(payOS));
+        }
+
         public async Task<PaymentResponseDTO> CreatePaymentAsync(PaymentRequestDTO request)
         {
             try
             {
+                if (request == null)
+                {
+                    throw new ArgumentNullException(nameof(request));
+                }
+
+                _logger.LogInformation("Bắt đầu tạo payment cho user {UserId}", request.UserId);
+
                 // 1. Kiểm tra user và membership
                 var userRepo = _unitOfWork.GetRepository<User>();
                 var membershipRepo = _unitOfWork.GetRepository<Membership>();
                 var userMembershipRepo = _unitOfWork.GetRepository<UserMembership>();
 
+                // Kiểm tra user
                 var user = await userRepo.GetAsync(u => u.UserId == request.UserId);
                 if (user == null)
+                {
+                    _logger.LogWarning("Không tìm thấy user với ID: {UserId}", request.UserId);
                     throw new Exception("Không tìm thấy user");
+                }
 
+                // Kiểm tra membership
                 var membership = await membershipRepo.GetAsync(m => m.MembershipId == request.MembershipId);
                 if (membership == null)
+                {
+                    _logger.LogWarning("Không tìm thấy membership với ID: {MembershipId}", request.MembershipId);
                     throw new Exception("Không tìm thấy gói membership");
+                }
 
                 // 2. Kiểm tra user đã có membership active chưa
                 var activeMembership = await userMembershipRepo.GetAsync(
                     um => um.UserId == request.UserId && um.Status == "Active"
                 );
                 if (activeMembership != null)
+                {
+                    _logger.LogWarning("User {UserId} đã có membership active", request.UserId);
                     throw new Exception("User đã có membership đang active");
+                }
 
                 // 3. Tạo mã giao dịch
                 string orderCode = $"{DateTimeOffset.Now.ToUnixTimeMilliseconds()}_{request.UserId}_{request.MembershipId}";
@@ -61,7 +91,7 @@ namespace BusinessLogic.Services.Implementations
 
                 var createPayment = await _payOS.createPaymentLink(paymentData);
 
-                _logger.LogInformation($"Payment URL: {createPayment.checkoutUrl}"); // Log để debug
+                _logger.LogInformation($"Payment URL: {createPayment.checkoutUrl}");
 
                 return new PaymentResponseDTO
                 {
@@ -73,7 +103,7 @@ namespace BusinessLogic.Services.Implementations
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi tạo payment");
+                _logger.LogError(ex, "Lỗi khi tạo payment cho user {UserId}", request?.UserId);
                 throw;
             }
         }
@@ -140,7 +170,18 @@ namespace BusinessLogic.Services.Implementations
                         }
 
                         await _unitOfWork.SaveChangesAsync();
+                        await transaction.CommitAsync();
                     }
+                    else
+                    {
+                        // Nếu transaction đã tồn tại, chỉ cần commit
+                        await transaction.CommitAsync();
+                    }
+                }
+                else
+                {
+                    // Nếu chưa thanh toán thành công, commit transaction
+                    await transaction.CommitAsync();
                 }
 
                 return new PaymentStatusDTO
@@ -160,7 +201,7 @@ namespace BusinessLogic.Services.Implementations
             }
             finally
             {
-                await transaction.CommitAsync();
+                // Không cần commit trong finally block nữa
             }
         }
     }

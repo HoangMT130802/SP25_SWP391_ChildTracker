@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using BusinessLogic.DTOs;
+using BusinessLogic.DTOs.Transaction;
 using BusinessLogic.Services.Interfaces;
 using DataAccess.Entities;
 using DataAccess.UnitOfWork;

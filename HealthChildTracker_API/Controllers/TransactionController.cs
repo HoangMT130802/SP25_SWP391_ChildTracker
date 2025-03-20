@@ -1,4 +1,4 @@
-﻿using BusinessLogic.DTOs;
+﻿using BusinessLogic.DTOs.Transaction;
 using BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;

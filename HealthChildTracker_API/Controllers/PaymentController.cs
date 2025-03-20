@@ -13,51 +13,32 @@ namespace HealthChildTracker_API.Controllers
         private readonly IPaymentService _paymentService;
         private readonly ILogger<PaymentController> _logger;
 
-        public PaymentController(
-            IPaymentService paymentService,
-            ILogger<PaymentController> logger)
-        {
-            _paymentService = paymentService;
-            _logger = logger;
-        }
-
         [HttpPost("create")]
-        [ProducesResponseType(typeof(PaymentResponseDTO), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<PaymentResponseDTO>> CreatePayment([FromBody] PaymentRequestDTO request)
         {
             try
             {
-                var response = await _paymentService.CreatePaymentAsync(request);
-                return Ok(response);
+                var result = await _paymentService.CreatePaymentAsync(request);
+                return Ok(new { success = true, data = result });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi tạo yêu cầu thanh toán");
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { success = false, message = ex.Message });
             }
         }
 
-        [HttpPost("webhook")]
-        public async Task<IActionResult> HandleWebhook([FromBody] PaymentWebhookDTO webhookData)
+        [HttpGet("check-status/{orderId}")]
+        public async Task<ActionResult<PaymentStatusDTO>> CheckPaymentStatus(string orderId)
         {
             try
             {
-                _logger.LogInformation($"Nhận được webhook từ PayOS: {JsonSerializer.Serialize(webhookData)}");
-
-                var result = await _paymentService.HandlePaymentWebhookAsync(webhookData);
-
-                _logger.LogInformation($"Kết quả xử lý webhook: {result}");
-
-                // Luôn trả về 200 OK cho PayOS
-                return Ok(new { success = result });
+                var result = await _paymentService.CheckPaymentStatusAsync(orderId);
+                return Ok(new { success = true, data = result });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi xử lý webhook");
-                return Ok(new { success = false, message = ex.Message });
+                return BadRequest(new { success = false, message = ex.Message });
             }
         }
-
     }
 }

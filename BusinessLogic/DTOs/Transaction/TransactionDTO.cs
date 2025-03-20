@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BusinessLogic.DTOs
+namespace BusinessLogic.DTOs.Transaction
 {
     public class TransactionDTO
     {
@@ -18,6 +18,6 @@ namespace BusinessLogic.DTOs
         public string Description { get; set; }
         public string Status { get; set; }
         public DateTime CreatedAt { get; set; }
-    
+
     }
 }

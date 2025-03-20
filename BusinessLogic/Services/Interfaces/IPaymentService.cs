@@ -11,6 +11,6 @@ namespace BusinessLogic.Services.Interfaces
     public interface IPaymentService
     {
         Task<PaymentResponseDTO> CreatePaymentAsync(PaymentRequestDTO request);
-        Task<bool> HandlePaymentWebhookAsync(PaymentWebhookDTO webhookData);
+        Task<PaymentStatusDTO> CheckPaymentStatusAsync(string orderId);
     }
 }

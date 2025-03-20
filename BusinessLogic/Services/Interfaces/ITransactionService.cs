@@ -1,4 +1,4 @@
-﻿using BusinessLogic.DTOs;
+﻿using BusinessLogic.DTOs.Transaction;
 using System;
 using System.Collections.Generic;
 using System.Linq;

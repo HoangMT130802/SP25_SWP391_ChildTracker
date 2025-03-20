@@ -35,6 +35,7 @@ namespace BusinessLogic.Services.Implementations
 
         public async Task<PaymentResponseDTO> CreatePaymentAsync(PaymentRequestDTO request)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 if (request == null)
@@ -48,6 +49,7 @@ namespace BusinessLogic.Services.Implementations
                 var userRepo = _unitOfWork.GetRepository<User>();
                 var membershipRepo = _unitOfWork.GetRepository<Membership>();
                 var userMembershipRepo = _unitOfWork.GetRepository<UserMembership>();
+                var transactionRepo = _unitOfWork.GetRepository<DataAccess.Entities.Transaction>();
 
                 // Kiểm tra user
                 var user = await userRepo.GetAsync(u => u.UserId == request.UserId);
@@ -86,10 +88,20 @@ namespace BusinessLogic.Services.Implementations
                     new List<ItemData>(),
                     $"{BASE_URL}/payment/cancel",
                     $"{BASE_URL}/payment/success",
-                    null // Không cần webhook URL
+                    null
                 );
 
                 var createPayment = await _payOS.createPaymentLink(paymentData);
+
+                // 5. Lưu transaction vào database
+                var newTransaction = _mapper.Map<DataAccess.Entities.Transaction>(request);
+                newTransaction.Amount = membership.Price;
+                newTransaction.Description = $"Thanh toán gói {membership.Name}";
+                newTransaction.TransactionCode = orderCode;
+
+                await transactionRepo.AddAsync(newTransaction);
+                await _unitOfWork.SaveChangesAsync();
+                await transaction.CommitAsync();
 
                 _logger.LogInformation($"Payment URL: {createPayment.checkoutUrl}");
 
@@ -103,6 +115,7 @@ namespace BusinessLogic.Services.Implementations
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Lỗi khi tạo payment cho user {UserId}", request?.UserId);
                 throw;
             }

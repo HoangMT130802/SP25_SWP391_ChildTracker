@@ -323,6 +323,8 @@ namespace BusinessLogic.Mappers
              .ForMember(dest => dest.LastRenewalDate, opt => opt.MapFrom(src => DateTime.UtcNow));
 
             CreateMap<Transaction, TransactionDTO>()
+            .ForMember(dest => dest.MembershipName, opt => opt.MapFrom(src =>
+                src.UserMembership != null ? src.UserMembership.Membership.Name : null))
                        .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
                        .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
                        .ForMember(dest => dest.Amount, opt => opt.MapFrom(src => src.Amount))
@@ -330,9 +332,11 @@ namespace BusinessLogic.Mappers
                        .ForMember(dest => dest.TransactionCode, opt => opt.MapFrom(src => src.TransactionCode));
             //Payment
             CreateMap<PaymentRequestDTO, Transaction>()
-            .ForMember(dest => dest.CreatedAt,opt => opt.MapFrom(src => DateTime.UtcNow))
-            .ForMember(dest => dest.Status,opt => opt.MapFrom(src => "PENDING"))
-            .ForMember(dest => dest.PaymentMethod,opt => opt.MapFrom(src => "PayOS"));
+           .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+           .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "PENDING"))
+           .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => "PayOS"))
+           .ForMember(dest => dest.TransactionCode, opt => opt.MapFrom(src =>
+               $"{DateTimeOffset.Now.ToUnixTimeMilliseconds()}_{src.UserId}_{src.MembershipId}"));
             CreateMap<PaymentResponseDTO, PaymentResponseDTO>().ReverseMap();
             CreateMap<PaymentStatusDTO, PaymentStatusDTO>().ReverseMap();
         }

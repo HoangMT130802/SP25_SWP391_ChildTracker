@@ -19,19 +19,7 @@ namespace BusinessLogic.Services.Implementations
         private readonly IMapper _mapper;
         private readonly ILogger<PaymentService> _logger;
         private readonly PayOS _payOS;
-        private const string BASE_URL = "http://localhost:5175"; 
-
-        public PaymentService(
-            IUnitOfWork unitOfWork,
-            IMapper mapper,
-            ILogger<PaymentService> logger,
-            PayOS payOS)
-        {
-            _unitOfWork = unitOfWork;
-            _mapper = mapper;
-            _logger = logger;
-            _payOS = payOS;
-        }
+        private const string BASE_URL = "http://localhost:5175";
 
         public async Task<PaymentResponseDTO> CreatePaymentAsync(PaymentRequestDTO request)
         {
@@ -73,7 +61,7 @@ namespace BusinessLogic.Services.Implementations
 
                 var createPayment = await _payOS.createPaymentLink(paymentData);
 
-                var paymentStatus = await _payOS.getPaymentLinkInformation(createPayment.orderCode);
+                _logger.LogInformation($"Payment URL: {createPayment.checkoutUrl}"); // Log để debug
 
                 return new PaymentResponseDTO
                 {

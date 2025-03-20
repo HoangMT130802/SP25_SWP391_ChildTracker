@@ -10,6 +10,7 @@ namespace BusinessLogic.DTOs.Payment
     {
         public int MembershipId { get; set; }
         public int UserId { get; set; }
+      
     }
 
 }

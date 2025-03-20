@@ -311,24 +311,30 @@ namespace BusinessLogic.Mappers
 
             // Membership mapping
             CreateMap<Membership, MembershipDTO>();
-            // UserMembership mapping
             CreateMap<UserMembership, UserMembershipDTO>()
-                .ForMember(dest => dest.Status,opt => opt.MapFrom(src => src.Status))
-                .ForMember(dest => dest.MembershipName,opt => opt.MapFrom(src => src.Membership.Name));
+           .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+           .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
+           .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))
+           .ForMember(dest => dest.LastRenewalDate, opt => opt.MapFrom(src => src.LastRenewalDate));
 
             CreateMap<CreateUserMembershipDTO, UserMembership>()
              .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => DateTime.UtcNow))
              .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "Pending")) 
              .ForMember(dest => dest.LastRenewalDate, opt => opt.MapFrom(src => DateTime.UtcNow));
-            // Transaction mapping
+
             CreateMap<Transaction, TransactionDTO>()
-                .ForMember(dest => dest.MembershipName,opt => opt.MapFrom(src => src.UserMembership.Membership.Name))
-                .ForMember(dest => dest.Status,opt => opt.MapFrom(src => src.Status));
+                       .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+                       .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
+                       .ForMember(dest => dest.Amount, opt => opt.MapFrom(src => src.Amount))
+                       .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => src.PaymentMethod))
+                       .ForMember(dest => dest.TransactionCode, opt => opt.MapFrom(src => src.TransactionCode));
             //Payment
             CreateMap<PaymentRequestDTO, Transaction>()
             .ForMember(dest => dest.CreatedAt,opt => opt.MapFrom(src => DateTime.UtcNow))
             .ForMember(dest => dest.Status,opt => opt.MapFrom(src => "PENDING"))
             .ForMember(dest => dest.PaymentMethod,opt => opt.MapFrom(src => "PayOS"));
+            CreateMap<PaymentResponseDTO, PaymentResponseDTO>().ReverseMap();
+            CreateMap<PaymentStatusDTO, PaymentStatusDTO>().ReverseMap();
         }
     }
 }

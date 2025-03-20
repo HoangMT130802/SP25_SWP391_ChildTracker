@@ -39,7 +39,13 @@ namespace HealthChildTracker_API.Controllers
                     return BadRequest(new { success = false, message = "Không thể tạo payment" });
                 }
 
-                return Ok(new { success = true, data = result });
+                _logger.LogInformation($"Payment URL: {result.PaymentUrl}"); // Log để debug
+
+                return Ok(new
+                {
+                    success = true,
+                    data = result
+                });
             }
             catch (Exception ex)
             {

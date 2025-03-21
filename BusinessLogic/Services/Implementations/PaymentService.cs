@@ -93,11 +93,27 @@ namespace BusinessLogic.Services.Implementations
 
                 var createPayment = await _payOS.createPaymentLink(paymentData);
 
-                // 5. Lưu transaction vào database
+                // 5. Tạo UserMembership mới với trạng thái Pending
+                var newUserMembership = new UserMembership
+                {
+                    UserId = request.UserId,
+                    MembershipId = request.MembershipId,
+                    Status = "Pending",
+                    StartDate = DateTime.UtcNow,
+                    EndDate = DateTime.UtcNow.AddMonths(1),
+                    LastRenewalDate = DateTime.UtcNow
+                };
+
+                await userMembershipRepo.AddAsync(newUserMembership);
+                await _unitOfWork.SaveChangesAsync();
+
+                // 6. Lưu transaction vào database với UserMembershipId mới
                 var newTransaction = _mapper.Map<DataAccess.Entities.Transaction>(request);
                 newTransaction.Amount = membership.Price;
                 newTransaction.Description = $"Thanh toán gói {membership.Name}";
                 newTransaction.TransactionCode = orderCode;
+                newTransaction.UserMembershipId = newUserMembership.UserMembershipId;
+                newTransaction.Status = "PENDING"; // Set transaction status to PENDING initially
 
                 await transactionRepo.AddAsync(newTransaction);
                 await _unitOfWork.SaveChangesAsync();
@@ -116,7 +132,11 @@ namespace BusinessLogic.Services.Implementations
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "Lỗi khi tạo payment cho user {UserId}", request?.UserId);
+                _logger.LogError(ex, "Lỗi khi tạo payment cho user {UserId}. Chi tiết: {Message}", request?.UserId, ex.Message);
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError("Inner Exception: {Message}", ex.InnerException.Message);
+                }
                 throw;
             }
         }
@@ -145,55 +165,39 @@ namespace BusinessLogic.Services.Implementations
                         t => t.TransactionCode == orderId
                     );
 
-                    if (existingTransaction == null)
+                    if (existingTransaction != null)
                     {
-                        // Tạo transaction mới
-                        var newTransaction = new DataAccess.Entities.Transaction
+                        // Cập nhật trạng thái transaction
+                        existingTransaction.Status = "PAID";
+                        existingTransaction.Amount = paymentInfo.amount;
+
+                        // Tìm và cập nhật UserMembership tương ứng
+                        var existingUserMembership = await userMembershipRepo.GetAsync(
+                            um => um.UserMembershipId == existingTransaction.UserMembershipId
+                        );
+
+                        if (existingUserMembership != null)
                         {
-                            UserId = userId,
-                            UserMembershipId = membershipId,
-                            Amount = paymentInfo.amount,
-                            PaymentMethod = "PayOS",
-                            TransactionCode = orderId,
-                            Description = $"Thanh toán gói membership",
-                            Status = "PAID",
-                            CreatedAt = DateTime.UtcNow
-                        };
+                            existingUserMembership.Status = "Active";
+                            existingUserMembership.StartDate = DateTime.UtcNow;
+                            existingUserMembership.EndDate = DateTime.UtcNow.AddMonths(1);
+                            existingUserMembership.LastRenewalDate = DateTime.UtcNow;
 
-                        await transactionRepo.AddAsync(newTransaction);
-
-                        // Tạo UserMembership mới
-                        var userMembership = new UserMembership
-                        {
-                            UserId = userId,
-                            MembershipId = membershipId,
-                            Status = "Active",
-                            StartDate = DateTime.UtcNow,
-                            EndDate = DateTime.UtcNow.AddMonths(1),
-                            LastRenewalDate = DateTime.UtcNow
-                        };
-
-                        await userMembershipRepo.AddAsync(userMembership);
-
-                        // Cập nhật role user
-                        var user = await userRepo.GetAsync(u => u.UserId == userId);
-                        if (user != null)
-                        {
-                            user.Role = "Member";
+                            // Cập nhật role user
+                            var user = await userRepo.GetAsync(u => u.UserId == userId);
+                            if (user != null)
+                            {
+                                user.Role = "Member";
+                            }
                         }
 
                         await _unitOfWork.SaveChangesAsync();
-                        await transaction.CommitAsync();
                     }
-                    else
-                    {
-                        // Nếu transaction đã tồn tại, chỉ cần commit
-                        await transaction.CommitAsync();
-                    }
+
+                    await transaction.CommitAsync();
                 }
                 else
                 {
-                    // Nếu chưa thanh toán thành công, commit transaction
                     await transaction.CommitAsync();
                 }
 
@@ -209,12 +213,12 @@ namespace BusinessLogic.Services.Implementations
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "Lỗi khi kiểm tra trạng thái thanh toán");
+                _logger.LogError(ex, "Lỗi khi kiểm tra trạng thái thanh toán. Chi tiết: {Message}", ex.Message);
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError("Inner Exception: {Message}", ex.InnerException.Message);
+                }
                 throw;
-            }
-            finally
-            {
-                // Không cần commit trong finally block nữa
             }
         }
     }

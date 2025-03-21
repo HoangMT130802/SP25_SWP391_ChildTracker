@@ -332,11 +332,15 @@ namespace BusinessLogic.Mappers
                        .ForMember(dest => dest.TransactionCode, opt => opt.MapFrom(src => src.TransactionCode));
             //Payment
             CreateMap<PaymentRequestDTO, Transaction>()
-           .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
-           .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "PENDING"))
-           .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => "PayOS"))
-           .ForMember(dest => dest.TransactionCode, opt => opt.MapFrom(src =>
-               $"{DateTimeOffset.Now.ToUnixTimeMilliseconds()}_{src.UserId}_{src.MembershipId}"));
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+                .ForMember(dest => dest.UserMembershipId, opt => opt.MapFrom(src => src.MembershipId))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "PENDING"))
+                .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => "PayOS"))
+                .ForMember(dest => dest.TransactionCode, opt => opt.MapFrom(src =>
+                    $"{DateTimeOffset.Now.ToUnixTimeMilliseconds()}_{src.UserId}_{src.MembershipId}"));
+
+
             CreateMap<PaymentResponseDTO, PaymentResponseDTO>().ReverseMap();
             CreateMap<PaymentStatusDTO, PaymentStatusDTO>().ReverseMap();
         }

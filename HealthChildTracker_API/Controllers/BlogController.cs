@@ -30,7 +30,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateBlog([FromBody] CreateBlogDTO blogDto)
         {
             try
@@ -53,7 +53,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpPut("{blogId}")]
-        [Authorize(Roles = "Doctor")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateBlog(int blogId, [FromBody] UpdateBlogDTO blogDto)
         {
             try
@@ -81,7 +81,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpDelete("{blogId}")]
-        [Authorize(Roles = "Admin,Doctor")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteBlog(int blogId)
         {
             try

@@ -137,8 +137,7 @@ namespace BusinessLogic.Services.Implementations
             try
             {
                 var blogRepo = _unitOfWork.GetRepository<Blog>();
-                var blogs = await blogRepo.FindAsync(
-                    predicate: null,
+                var blogs = await blogRepo.GetAllAsync(                
                     includeProperties: "Author"
                 );
 

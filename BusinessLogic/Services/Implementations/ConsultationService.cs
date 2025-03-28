@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BusinessLogic.DTOs.ConsultationRequest;
 using BusinessLogic.DTOs.ConsultationResponse;
+using BusinessLogic.DTOs.Doctor;
 using BusinessLogic.Services.Interfaces;
 using DataAccess.Entities;
 using DataAccess.UnitOfWork;
@@ -30,6 +31,20 @@ namespace BusinessLogic.Services.Implementations
             _logger = logger;
         }
 
+        public async Task<IEnumerable<ConsultationRequestDTO>> GetAllConsulationRequest()
+        {
+            try
+            {
+                var requestRepository = _unitOfWork.GetRepository<ConsultationRequest>();
+                var requests = await requestRepository.GetAllAsync();
+                return _mapper.Map<IEnumerable<ConsultationRequestDTO>>(requests);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy danh sách yêu cầu tham vấn");
+                throw;
+            }
+        }
         public async Task<ConsultationRequestDTO> CreateRequestAsync(int userId, CreateConsultationRequestDTO request)
         {
             try

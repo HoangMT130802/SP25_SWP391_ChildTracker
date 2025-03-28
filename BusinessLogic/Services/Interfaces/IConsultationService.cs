@@ -8,6 +8,7 @@ namespace BusinessLogic.Services.Interfaces
     public interface IConsultationService
     {
         // Các phương thức chính cho request
+        Task<IEnumerable<ConsultationRequestDTO>> GetAllConsulationRequest();
         Task<ConsultationRequestDTO> CreateRequestAsync(int userId, CreateConsultationRequestDTO request);
         Task<ConsultationRequestDTO> GetRequestByIdAsync(int requestId, int userId);
         Task<IEnumerable<ConsultationRequestDTO>> GetUserRequestsAsync(int userId);

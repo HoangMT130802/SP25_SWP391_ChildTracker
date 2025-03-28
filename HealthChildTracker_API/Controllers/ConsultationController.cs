@@ -1,5 +1,6 @@
 ﻿using BusinessLogic.DTOs.ConsultationRequest;
 using BusinessLogic.DTOs.ConsultationResponse;
+using BusinessLogic.Services.Implementations;
 using BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +23,7 @@ namespace HealthChildTracker_API.Controllers
             _consultationService = consultationService;
             _logger = logger;
         }
+      
 
         private int? GetCurrentUserId()
         {
@@ -53,7 +55,6 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpPost("request")]
-       
         public async Task<IActionResult> CreateRequest([FromBody] CreateConsultationRequestDTO request)
         {
             try
@@ -77,7 +78,20 @@ namespace HealthChildTracker_API.Controllers
                 return StatusCode(500, new { message = "Lỗi server" });
             }
         }
-
+        [HttpGet("GetAllrequest")]
+        public async Task<IActionResult> GetAllConsulationRequests()
+        {
+            try
+            {
+                var consultations = await _consultationService.GetAllConsulationRequest();
+                return Ok(consultations);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all requests");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
         [HttpGet("request/{requestId}")]
         
         public async Task<IActionResult> GetRequest(int requestId)

@@ -146,30 +146,37 @@ namespace BusinessLogic.Services.Implementations
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                // 1. Kiểm tra status từ PayOS
-                var paymentInfo = await _payOS.getPaymentLinkInformation(long.Parse(orderId.Split('_')[0]));
+                var transactionRepo = _unitOfWork.GetRepository<DataAccess.Entities.Transaction>();
+                var userMembershipRepo = _unitOfWork.GetRepository<UserMembership>();
+                var userRepo = _unitOfWork.GetRepository<User>();
 
-                // 2. Nếu thanh toán thành công
-                if (paymentInfo.status.Equals("PAID"))
+                // Kiểm tra transaction đã tồn tại chưa
+                var existingTransaction = await transactionRepo.GetAsync(
+                    t => t.TransactionCode == orderId
+                );
+
+                if (existingTransaction == null)
                 {
-                    var transactionRepo = _unitOfWork.GetRepository<DataAccess.Entities.Transaction>();
-                    var userMembershipRepo = _unitOfWork.GetRepository<UserMembership>();
-                    var userRepo = _unitOfWork.GetRepository<User>();
+                    throw new KeyNotFoundException($"Không tìm thấy giao dịch với mã {orderId}");
+                }
 
-                    // Lấy thông tin từ orderId
-                    var userId = int.Parse(orderId.Split('_')[1]);
-                    var membershipId = int.Parse(orderId.Split('_')[2]);
+                // 1. Kiểm tra status từ PayOS chỉ khi transaction chưa PAID
+                if (existingTransaction.Status != "PAID")
+                {
+                    var paymentInfo = await _payOS.getPaymentLinkInformation(long.Parse(orderId.Split('_')[0]));
+                    _logger.LogInformation($"PayOS Status: {paymentInfo.status} for OrderId: {orderId}");
 
-                    // Kiểm tra transaction đã tồn tại chưa
-                    var existingTransaction = await transactionRepo.GetAsync(
-                        t => t.TransactionCode == orderId
-                    );
-
-                    if (existingTransaction != null)
+                    // 2. Nếu thanh toán thành công từ PayOS
+                    if (paymentInfo.status.Equals("PAID", StringComparison.OrdinalIgnoreCase))
                     {
+                        // Lấy thông tin từ orderId
+                        var userId = int.Parse(orderId.Split('_')[1]);
+                        var membershipId = int.Parse(orderId.Split('_')[2]);
+
                         // Cập nhật trạng thái transaction
                         existingTransaction.Status = "PAID";
                         existingTransaction.Amount = paymentInfo.amount;
+                        transactionRepo.Update(existingTransaction);
 
                         // Tìm và cập nhật UserMembership tương ứng
                         var existingUserMembership = await userMembershipRepo.GetAsync(
@@ -182,32 +189,36 @@ namespace BusinessLogic.Services.Implementations
                             existingUserMembership.StartDate = DateTime.UtcNow;
                             existingUserMembership.EndDate = DateTime.UtcNow.AddMonths(1);
                             existingUserMembership.LastRenewalDate = DateTime.UtcNow;
+                            userMembershipRepo.Update(existingUserMembership);
 
                             // Cập nhật role user
                             var user = await userRepo.GetAsync(u => u.UserId == userId);
                             if (user != null)
                             {
                                 user.Role = "Member";
+                                userRepo.Update(user);
                             }
                         }
 
                         await _unitOfWork.SaveChangesAsync();
                     }
+                    else if (paymentInfo.status.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase))
+                    {
+                        existingTransaction.Status = "CANCELLED";
+                        transactionRepo.Update(existingTransaction);
+                        await _unitOfWork.SaveChangesAsync();
+                    }
+                }
 
-                    await transaction.CommitAsync();
-                }
-                else
-                {
-                    await transaction.CommitAsync();
-                }
+                await transaction.CommitAsync();
 
                 return new PaymentStatusDTO
                 {
                     Success = true,
-                    Status = paymentInfo.status,
-                    Message = paymentInfo.status.Equals("PAID") ? "Thanh toán thành công" :
-                              paymentInfo.status.Equals("PENDING") ? "Đang chờ thanh toán" :
-                              paymentInfo.status.Equals("CANCELLED") ? "Đã hủy" : "Không xác định"
+                    Status = existingTransaction.Status,
+                    Message = existingTransaction.Status.Equals("PAID") ? "Thanh toán thành công" :
+                              existingTransaction.Status.Equals("PENDING") ? "Đang chờ thanh toán" :
+                              existingTransaction.Status.Equals("CANCELLED") ? "Đã hủy" : "Không xác định"
                 };
             }
             catch (Exception ex)

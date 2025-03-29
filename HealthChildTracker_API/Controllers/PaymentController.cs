@@ -67,12 +67,16 @@ namespace HealthChildTracker_API.Controllers
                 _logger.LogInformation("Kiểm tra trạng thái payment cho order {OrderId}", orderId);
                 var result = await _paymentService.CheckPaymentStatusAsync(orderId);
 
-                if (result == null)
+                return Ok(new
                 {
-                    return NotFound(new { success = false, message = "Không tìm thấy thông tin payment" });
-                }
-
-                return Ok(new { success = true, data = result });
+                    success = true,
+                    data = new
+                    {
+                        status = result.Status,
+                        message = result.Message,
+                        success = result.Success
+                    }
+                });
             }
             catch (Exception ex)
             {

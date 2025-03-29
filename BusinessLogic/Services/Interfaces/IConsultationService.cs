@@ -13,7 +13,8 @@ namespace BusinessLogic.Services.Interfaces
         Task<ConsultationRequestDTO> GetRequestByIdAsync(int requestId, int userId);
         Task<IEnumerable<ConsultationRequestDTO>> GetUserRequestsAsync(int userId);
         Task<IEnumerable<ConsultationRequestDTO>> GetDoctorRequestsAsync(int doctorId);
-        
+        Task<IEnumerable<ConsultationResponseDTO>> GetDoctorResponsesAsync(int doctorId);
+
         // Phương thức xử lý câu hỏi và trả lời
         Task<ConsultationResponseDTO> AddResponseAsync(
             int requestId, 

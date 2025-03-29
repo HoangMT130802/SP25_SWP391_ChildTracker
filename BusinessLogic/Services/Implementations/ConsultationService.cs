@@ -106,6 +106,27 @@ namespace BusinessLogic.Services.Implementations
             await AssignDoctorAsync(requestId, doctorId);
         }
 
+        public async Task<IEnumerable<ConsultationResponseDTO>> GetDoctorResponsesAsync(int doctorId)
+        {
+            try
+            {
+                var responseRepo = _unitOfWork.GetRepository<ConsultationResponse>();
+                var responses = await responseRepo.FindAsync(
+                    r => r.DoctorId == doctorId,
+                    includeProperties: "Request,Request.User,Request.Child"
+                );
+
+                // Sắp xếp theo thời gian mới nhất
+                var sortedResponses = responses.OrderByDescending(r => r.CreatedAt);
+
+                return _mapper.Map<IEnumerable<ConsultationResponseDTO>>(sortedResponses);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lấy danh sách phản hồi của bác sĩ {doctorId}");
+                throw;
+            }
+        }
         public async Task<ConsultationResponseDTO> CreateResponseAsync(int requestId, int doctorId, CreateConsultationResponseDTO response)
         {
             using var transaction = await _unitOfWork.BeginTransactionAsync();

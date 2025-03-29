@@ -149,7 +149,31 @@ namespace HealthChildTracker_API.Controllers
                 return StatusCode(500, new { message = "Lỗi server" });
             }
         }
+        [HttpGet("doctor/{doctorId}/responses")]
+        [Authorize(Roles = "Doctor,Admin")]
+        public async Task<ActionResult<IEnumerable<ConsultationResponseDTO>>> GetDoctorResponses(int doctorId)
+        {
+            try
+            {
+                _logger.LogInformation($"Bắt đầu lấy danh sách phản hồi của bác sĩ {doctorId}");
+                var responses = await _consultationService.GetDoctorResponsesAsync(doctorId);
 
+                return Ok(new
+                {
+                    success = true,
+                    data = responses
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lấy danh sách phản hồi của bác sĩ {doctorId}");
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi lấy danh sách phản hồi"
+                });
+            }
+        }
         [HttpGet("doctor/requests")]
         [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> GetDoctorRequests()

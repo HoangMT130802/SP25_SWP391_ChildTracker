@@ -343,6 +343,11 @@ namespace BusinessLogic.Mappers
 
             CreateMap<PaymentResponseDTO, PaymentResponseDTO>().ReverseMap();
             CreateMap<PaymentStatusDTO, PaymentStatusDTO>().ReverseMap();
+
+
+            // membership
+            CreateMap<Membership, MembershipDTO>().ReverseMap();
+            //CreateMap<UpdateMembershipDTO, Membership>();
         }
     }
 }

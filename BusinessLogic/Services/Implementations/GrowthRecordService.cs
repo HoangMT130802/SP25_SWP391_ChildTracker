@@ -60,7 +60,6 @@ namespace BusinessLogic.Services.Implementations
                 throw;
             }
         }
-
         public async Task<GrowthRecordDTO> CreateGrowthRecordAsync(CreateGrowthRecordDTO recordDTO)
         {
             try
@@ -72,6 +71,15 @@ namespace BusinessLogic.Services.Implementations
                 if (child == null)
                 {
                     throw new KeyNotFoundException($"Child with ID {recordDTO.ChildId} not found");
+                }
+
+                // Validate ngày sinh của trẻ
+                var minDate = child.BirthDate.Date.AddDays(3);
+                var currentDate = DateTime.UtcNow.Date;
+
+                if (currentDate < minDate)
+                {
+                    throw new InvalidOperationException($"Không thể tạo record trước khi trẻ được 3 ngày tuổi. Ngày sinh: {child.BirthDate:dd/MM/yyyy}");
                 }
 
                 var recordRepository = _unitOfWork.GetRepository<GrowthRecord>();
@@ -116,6 +124,15 @@ namespace BusinessLogic.Services.Implementations
                 if (record == null)
                 {
                     throw new KeyNotFoundException($"Growth record with ID {recordId} not found");
+                }
+
+                // Validate ngày sinh của trẻ
+                var minDate = record.Child.BirthDate.Date.AddDays(3);
+                var currentDate = DateTime.UtcNow.Date;
+
+                if (currentDate < minDate)
+                {
+                    throw new InvalidOperationException($"Không thể cập nhật record trước khi trẻ được 3 ngày tuổi. Ngày sinh: {record.Child.BirthDate:dd/MM/yyyy}");
                 }
 
                 _mapper.Map(recordDTO, record);

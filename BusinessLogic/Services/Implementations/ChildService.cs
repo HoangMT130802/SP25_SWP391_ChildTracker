@@ -65,7 +65,28 @@ namespace BusinessLogic.Services.Implementations
         {
             try
             {
+                // Kiểm tra số lượng trẻ tối đa theo gói membership
+                var userMembershipRepo = _unitOfWork.GetRepository<UserMembership>();
+                var activeMembership = await userMembershipRepo.GetAsync(
+                    um => um.UserId == userId &&
+                          um.Status == "Active" &&
+                          um.EndDate > DateTime.UtcNow,
+                    includeProperties: "Membership"
+                );
+
+                if (activeMembership == null)
+                {
+                    throw new InvalidOperationException("Bạn cần có gói membership active để thêm trẻ");
+                }
+
+                // Kiểm tra số lượng trẻ hiện tại
                 var childRepository = _unitOfWork.GetRepository<Child>();
+                var currentChildrenCount = await childRepository.CountAsync(c => c.UserId == userId && c.Status == true);
+
+                if (currentChildrenCount >= activeMembership.Membership.MaxChildren)
+                {
+                    throw new InvalidOperationException($"Bạn đã đạt giới hạn số lượng trẻ ({activeMembership.Membership.MaxChildren}) theo gói membership");
+                }
 
                 var child = _mapper.Map<Child>(childDTO);
                 child.UserId = userId;
@@ -84,7 +105,6 @@ namespace BusinessLogic.Services.Implementations
                 throw;
             }
         }
-
         public async Task<ChildDTO> UpdateChildAsync(int childId, int userId, UpdateChildDTO childDTO)
         {
             try

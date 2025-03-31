@@ -86,8 +86,8 @@ namespace BusinessLogic.Services.Implementations
                     (int)membership.Price,
                     $"Thanh toán gói {membership.Name}",
                     new List<ItemData>(),
-                    $"{BASE_URL}/payment/cancel",
-                    $"{BASE_URL}/payment/success",
+                    $"{BASE_URL}/customer/payment/cancel",
+                    $"{BASE_URL}/customer/payment/success?orderId={orderCode}",
                     null
                 );
 

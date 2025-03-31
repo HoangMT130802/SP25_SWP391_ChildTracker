@@ -49,6 +49,30 @@ namespace BusinessLogic.Services.Implementations
         {
             try
             {
+                // Kiểm tra quyền tư vấn từ membership
+                var userMembershipRepo = _unitOfWork.GetRepository<UserMembership>();
+                var activeMembership = await userMembershipRepo.GetAsync(
+                    um => um.UserId == userId &&
+                          um.Status == "Active" &&
+                          um.EndDate > DateTime.UtcNow,
+                    includeProperties: "Membership"
+                );
+
+                if (activeMembership == null)
+                {
+                    throw new InvalidOperationException("Bạn cần có gói membership active để sử dụng dịch vụ tư vấn");
+                }
+
+                if (!activeMembership.Membership.CanAccessConsultation)
+                {
+                    throw new InvalidOperationException("Gói membership của bạn không có quyền sử dụng dịch vụ tư vấn");
+                }
+
+                if (activeMembership.RemainingConsultations <= 0)
+                {
+                    throw new InvalidOperationException("Bạn đã hết lượt tư vấn trong gói membership hiện tại");
+                }
+
                 // Kiểm tra child có thuộc về user không
                 var childRepo = _unitOfWork.GetRepository<Child>();
                 var child = await childRepo.GetAsync(c => c.ChildId == request.ChildId && c.UserId == userId);
@@ -65,6 +89,11 @@ namespace BusinessLogic.Services.Implementations
 
                 var repo = _unitOfWork.GetRepository<ConsultationRequest>();
                 await repo.AddAsync(consultationRequest);
+
+                // Giảm số lượt tư vấn còn lại
+                activeMembership.RemainingConsultations--;
+                userMembershipRepo.Update(activeMembership);
+
                 await _unitOfWork.SaveChangesAsync();
 
                 // Thêm câu hỏi đầu tiên

@@ -74,16 +74,15 @@ namespace BusinessLogic.Services.Implementations
                 }
 
                 // Validate ngày sinh của trẻ
-                var minDate = child.BirthDate.Date.AddDays(3);
+                var birthDate = child.BirthDate.Date;
                 var currentDate = DateTime.UtcNow.Date;
 
-                if (currentDate < minDate)
+                if (currentDate < birthDate)
                 {
-                    throw new InvalidOperationException($"Không thể tạo record trước khi trẻ được 3 ngày tuổi. Ngày sinh: {child.BirthDate:dd/MM/yyyy}");
+                    throw new InvalidOperationException($"Không thể tạo record trước ngày sinh của trẻ. Ngày sinh: {child.BirthDate:dd/MM/yyyy}");
                 }
 
                 var recordRepository = _unitOfWork.GetRepository<GrowthRecord>();
-
                 var record = _mapper.Map<GrowthRecord>(recordDTO);
 
                 // Calculate BMI: weight (kg) / (height (m) * height (m))
@@ -127,12 +126,12 @@ namespace BusinessLogic.Services.Implementations
                 }
 
                 // Validate ngày sinh của trẻ
-                var minDate = record.Child.BirthDate.Date.AddDays(3);
+                var birthDate = record.Child.BirthDate.Date;
                 var currentDate = DateTime.UtcNow.Date;
 
-                if (currentDate < minDate)
+                if (currentDate < birthDate)
                 {
-                    throw new InvalidOperationException($"Không thể cập nhật record trước khi trẻ được 3 ngày tuổi. Ngày sinh: {record.Child.BirthDate:dd/MM/yyyy}");
+                    throw new InvalidOperationException($"Không thể cập nhật record trước ngày sinh của trẻ. Ngày sinh: {record.Child.BirthDate:dd/MM/yyyy}");
                 }
 
                 _mapper.Map(recordDTO, record);

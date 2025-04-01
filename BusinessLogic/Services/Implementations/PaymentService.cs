@@ -101,7 +101,8 @@ namespace BusinessLogic.Services.Implementations
                     Status = "Pending",
                     StartDate = DateTime.UtcNow,
                     EndDate = DateTime.UtcNow.AddMonths(1),
-                    LastRenewalDate = DateTime.UtcNow
+                    LastRenewalDate = DateTime.UtcNow,
+                    RemainingConsultations = membership.MaxConsultations
                 };
 
                 await userMembershipRepo.AddAsync(newUserMembership);

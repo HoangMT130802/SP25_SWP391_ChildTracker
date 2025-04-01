@@ -65,8 +65,8 @@ namespace BusinessLogic.Services.Implementations
                 if (blog == null)
                     throw new KeyNotFoundException("Không tìm thấy blog");
 
-                // Chỉ Doctor và là tác giả mới được update
-                if (userRole != "Doctor" || blog.AuthorId != userId)
+                
+                if (userRole != "Admin" && (userRole != "Doctor" || blog.AuthorId != userId))
                     throw new UnauthorizedAccessException("Bạn không có quyền cập nhật blog này");
 
                 _mapper.Map(blogDto, blog);

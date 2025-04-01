@@ -23,6 +23,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<MembershipDTO>>> GetAllMemberships()
         {
             try

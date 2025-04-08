@@ -271,7 +271,7 @@ namespace BusinessLogic.Services.Implementations
                     SlotTime = appointmentDTO.SlotTime,
                     Status = "Pending",
                     MeetingLink = meetingLink,
-                    Description = appointmentDTO.Description ?? string.Empty,
+                    Description = appointmentDTO.Description,
                     Note = appointmentDTO.Note ?? string.Empty,
                     CreatedAt = DateTime.UtcNow
                 };

@@ -19,6 +19,7 @@ namespace BusinessLogic.DTOs.Appointment
         public TimeOnly AppointmentTime { get; set; }
         public string MeetingLink { get; set; }
         public string Description { get; set; }
+        public string Note { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 } 

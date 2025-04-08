@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -366,8 +367,7 @@ namespace BusinessLogic.Services.Implementations
             }
         }
 
-      
-        public async Task<AppointmentDTO> CompleteAppointmentAsync(int appointmentId)
+        public async Task<AppointmentDTO> CompleteAppointmentAsync(int appointmentId, string note, int doctorId)
         {
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
@@ -383,6 +383,44 @@ namespace BusinessLogic.Services.Implementations
                     throw new KeyNotFoundException($"Không tìm thấy lịch hẹn với ID {appointmentId}");
                 }
 
+                if (appointment.Schedule == null)
+                {
+                    await transaction.RollbackAsync();
+                    throw new InvalidOperationException($"Lịch hẹn {appointmentId} không có thông tin lịch trình (Schedule).");
+                }
+
+                // Check doctor authorization
+                if (appointment.Schedule.DoctorId != doctorId)
+                {
+                    await transaction.RollbackAsync();
+                    throw new UnauthorizedAccessException("Bạn không có quyền hoàn thành cuộc hẹn này.");
+                }
+
+                // Check appointment start time
+                DateTime appointmentStartTime;
+                if (TimeSpan.TryParseExact(appointment.SlotTime, "hh\\:mm", CultureInfo.InvariantCulture, out var startTimeSpan))
+                {
+                    // Combine WorkDate (DateOnly) and SlotTime (TimeSpan)
+                    appointmentStartTime = appointment.Schedule.WorkDate.ToDateTime(TimeOnly.MinValue).Add(startTimeSpan);
+                    var currentTime = DateTime.Now; // Consider time zone consistency (Now vs UtcNow)
+
+                    if (currentTime < appointmentStartTime)
+                    {
+                        await transaction.RollbackAsync();
+                        throw new InvalidOperationException($"Không thể hoàn thành cuộc hẹn trước thời gian bắt đầu dự kiến: {appointmentStartTime:dd/MM/yyyy HH:mm}");
+                    }
+                    // *** Missing closing brace for the if block was here ***
+                }
+                else // Handle invalid SlotTime format
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError($"SlotTime '{appointment.SlotTime}' của appointment {appointmentId} không đúng định dạng 'HH:mm'.");
+                    throw new FormatException("Định dạng thời gian của cuộc hẹn không hợp lệ.");
+                }
+                // *** End of start time check ***
+
+
+                // Check current appointment status
                 if (appointment.Status == "Cancelled")
                 {
                     throw new InvalidOperationException("Không thể hoàn thành lịch hẹn đã hủy");
@@ -390,22 +428,42 @@ namespace BusinessLogic.Services.Implementations
 
                 if (appointment.Status == "Completed")
                 {
+                    // Consider returning the existing completed appointment instead of throwing an error
+                    // return _mapper.Map<AppointmentDTO>(appointment);
                     throw new InvalidOperationException("Lịch hẹn đã được hoàn thành trước đó");
                 }
 
+                // Only allow completion for scheduled or ongoing appointments
+                if (appointment.Status != "Scheduled" && appointment.Status != "Ongoing") // Adjust statuses if needed
+                {
+                    throw new InvalidOperationException($"Không thể hoàn thành cuộc hẹn ở trạng thái '{appointment.Status}'.");
+                }
+
+                // Update Note and Status
+                appointment.Note = note;
                 appointment.Status = "Completed";
+                // appointment.UpdatedAt = DateTime.UtcNow; // Optional: update timestamp
+
                 appointmentRepository.Update(appointment);
                 await _unitOfWork.SaveChangesAsync();
 
                 await transaction.CommitAsync();
+                _logger.LogInformation($"Appointment {appointmentId} completed by Doctor {doctorId}. Note added.");
 
-                return _mapper.Map<AppointmentDTO>(appointment);
+                return _mapper.Map<AppointmentDTO>(appointment); // Return the updated appointment DTO
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, $"Lỗi khi hoàn thành lịch hẹn {appointmentId}");
-                throw;
+                await transaction.RollbackAsync(); // Ensure rollback on any error
+                if (ex is UnauthorizedAccessException || ex is InvalidOperationException || ex is KeyNotFoundException || ex is FormatException)
+                {
+                    _logger.LogWarning(ex, $"Validation failed when completing appointment {appointmentId}: {ex.Message}");
+                }
+                else
+                {
+                    _logger.LogError(ex, $"Lỗi khi hoàn thành lịch hẹn {appointmentId}");
+                }
+                throw; // Re-throw the exception to be handled by the controller
             }
         }
     }

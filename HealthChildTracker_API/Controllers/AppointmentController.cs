@@ -61,7 +61,7 @@ namespace HealthChildTracker_API.Controllers
         }
 
         [HttpGet("GetAppoinmentByDoctor/{doctorId}")]
-        [Authorize(Roles = "Doctor")]
+        [Authorize(Roles = "Doctor,Admin")]
         public async Task<IActionResult> GetDoctorAppointments(int doctorId)
         {
             try

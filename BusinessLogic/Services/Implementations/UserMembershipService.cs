@@ -162,7 +162,7 @@ namespace BusinessLogic.Services.Implementations
                 }
 
                 membership.StartDate = DateTime.UtcNow;
-                membership.EndDate = DateTime.UtcNow.AddMonths(1);
+                membership.EndDate = DateTime.UtcNow.AddMonths(12);
                 membership.Status = "Active";
                 membership.LastRenewalDate = DateTime.UtcNow;
                 membership.RemainingConsultations = membership.Membership.MaxConsultations; 

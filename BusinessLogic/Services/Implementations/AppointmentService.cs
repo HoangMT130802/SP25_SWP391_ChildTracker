@@ -304,7 +304,6 @@ namespace BusinessLogic.Services.Implementations
                 throw;
             }
         }
-
         public async Task<bool> CancelAppointmentAsync(int appointmentId, int userId)
         {
             using var transaction = await _unitOfWork.BeginTransactionAsync();
@@ -416,9 +415,11 @@ namespace BusinessLogic.Services.Implementations
                 }
 
                 // Kiểm tra thời gian
-                if (TimeSpan.TryParseExact(appointment.SlotTime, "hh\\:mm", CultureInfo.InvariantCulture, out var startTimeSpan))
+                if (int.TryParse(appointment.SlotTime, out int slotId))
                 {
-                    DateTime appointmentStartTime = schedule.WorkDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified).Add(startTimeSpan);
+                    // Tạo thời gian bắt đầu từ WorkDate và StartTime của schedule
+                    DateTime appointmentStartTime = schedule.WorkDate.ToDateTime(schedule.StartTime, DateTimeKind.Unspecified)
+                        .AddMinutes((slotId - 1) * schedule.SlotDuration);
 
                     if (appointmentStartTime > DateTime.UtcNow)
                     {
@@ -428,7 +429,7 @@ namespace BusinessLogic.Services.Implementations
                 }
                 else
                 {
-                    _logger.LogWarning($"Định dạng SlotTime '{appointment.SlotTime}' không hợp lệ cho cuộc hẹn {appointmentId}");
+                    _logger.LogWarning($"SlotTime '{appointment.SlotTime}' không hợp lệ cho cuộc hẹn {appointmentId}");
                     throw new InvalidOperationException("Thời gian cuộc hẹn không hợp lệ");
                 }
 

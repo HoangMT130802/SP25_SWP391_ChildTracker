@@ -11,7 +11,7 @@ namespace BusinessLogic.Services.Interfaces
         Task<IEnumerable<AppointmentDTO>> GetDoctorAppointmentsAsync(int doctorId);
         Task<AppointmentDTO> GetAppointmentByIdAsync(int appointmentId);
         Task<AppointmentDTO> CreateAppointmentAsync(CreateAppointmentDTO appointmentDTO);
-        Task<bool> CancelAppointmentAsync(int appointmentId, int userId);              
-        Task<AppointmentDTO> CompleteAppointmentAsync(int appointmentId);
+        Task<bool> CancelAppointmentAsync(int appointmentId, int userId);
+        Task<AppointmentDTO> CompleteAppointmentAsync(int appointmentId, string note, int doctorId);
     }
 } 

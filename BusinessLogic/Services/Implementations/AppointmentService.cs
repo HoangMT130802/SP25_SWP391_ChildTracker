@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -270,7 +271,7 @@ namespace BusinessLogic.Services.Implementations
                     SlotTime = appointmentDTO.SlotTime,
                     Status = "Pending",
                     MeetingLink = meetingLink,
-                    Description = appointmentDTO.Description ?? string.Empty,
+                    Description = appointmentDTO.Description,
                     Note = appointmentDTO.Note ?? string.Empty,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -303,7 +304,6 @@ namespace BusinessLogic.Services.Implementations
                 throw;
             }
         }
-
         public async Task<bool> CancelAppointmentAsync(int appointmentId, int userId)
         {
             using var transaction = await _unitOfWork.BeginTransactionAsync();
@@ -366,45 +366,90 @@ namespace BusinessLogic.Services.Implementations
             }
         }
 
-      
-        public async Task<AppointmentDTO> CompleteAppointmentAsync(int appointmentId)
+        public async Task<AppointmentDTO> CompleteAppointmentAsync(int appointmentId, string note, int doctorId)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                var appointmentRepository = _unitOfWork.GetRepository<Appointment>();
-                var appointment = await appointmentRepository.GetAsync(
-                    a => a.AppointmentId == appointmentId,
-                    includeProperties: "User,Child,Schedule,Schedule.Doctor"
-                );
+                _logger.LogInformation($"Bắt đầu hoàn thành cuộc hẹn {appointmentId} bởi bác sĩ {doctorId}");
+
+                // Lấy thông tin bác sĩ từ DoctorProfile
+                var doctorProfile = await _unitOfWork.GetRepository<DoctorProfile>()
+                    .FindAsync(d => d.UserId == doctorId);
+
+                if (doctorProfile == null || !doctorProfile.Any()) 
+                {
+                    _logger.LogWarning($"Không tìm thấy thông tin bác sĩ với UserId {doctorId}");
+                    throw new UnauthorizedAccessException("Bạn không phải là bác sĩ hoặc không có quyền hoàn thành cuộc hẹn này");
+                }
+
+                var appointment = await _unitOfWork.GetRepository<Appointment>()
+                    .GetByIdAsync(appointmentId);
 
                 if (appointment == null)
                 {
-                    throw new KeyNotFoundException($"Không tìm thấy lịch hẹn với ID {appointmentId}");
+                    _logger.LogWarning($"Không tìm thấy cuộc hẹn {appointmentId}");
+                    throw new KeyNotFoundException($"Không tìm thấy cuộc hẹn với ID {appointmentId}");
                 }
 
-                if (appointment.Status == "Cancelled")
+                // Kiểm tra quyền truy cập thông qua Schedule
+                var schedule = await _unitOfWork.GetRepository<DoctorSchedule>()
+                    .GetByIdAsync(appointment.ScheduleId);
+
+                if (schedule == null)
                 {
-                    throw new InvalidOperationException("Không thể hoàn thành lịch hẹn đã hủy");
+                    _logger.LogWarning($"Không tìm thấy lịch làm việc cho cuộc hẹn {appointmentId}");
+                    throw new KeyNotFoundException("Không tìm thấy lịch làm việc cho cuộc hẹn này");
                 }
 
-                if (appointment.Status == "Completed")
+                if (schedule.DoctorId != doctorId)
                 {
-                    throw new InvalidOperationException("Lịch hẹn đã được hoàn thành trước đó");
+                    _logger.LogWarning($"Bác sĩ {doctorId} không có quyền hoàn thành cuộc hẹn {appointmentId}");
+                    throw new UnauthorizedAccessException("Bạn không có quyền hoàn thành cuộc hẹn này");
                 }
 
+                // Kiểm tra trạng thái cuộc hẹn
+                if (appointment.Status != "Scheduled" && appointment.Status != "Ongoing")
+                {
+                    _logger.LogWarning($"Cuộc hẹn {appointmentId} không thể hoàn thành với trạng thái {appointment.Status}");
+                    throw new InvalidOperationException($"Không thể hoàn thành cuộc hẹn với trạng thái {appointment.Status}");
+                }
+
+                // Kiểm tra thời gian
+                if (int.TryParse(appointment.SlotTime, out int slotId))
+                {
+                    // Tạo thời gian bắt đầu từ WorkDate và StartTime của schedule
+                    DateTime appointmentStartTime = schedule.WorkDate.ToDateTime(schedule.StartTime, DateTimeKind.Unspecified)
+                        .AddMinutes((slotId - 1) * schedule.SlotDuration);
+
+                    // Chuyển đổi thời gian hiện tại sang UTC+7
+                    DateTime vietnamTime = DateTime.UtcNow.AddHours(7);
+
+                    if (appointmentStartTime > vietnamTime)
+                    {
+                        _logger.LogWarning($"Không thể hoàn thành cuộc hẹn {appointmentId} trước thời gian bắt đầu ({appointmentStartTime:dd/MM/yyyy HH:mm})");
+                        throw new InvalidOperationException("Không thể hoàn thành cuộc hẹn trước thời gian bắt đầu");
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning($"SlotTime '{appointment.SlotTime}' không hợp lệ cho cuộc hẹn {appointmentId}");
+                    throw new InvalidOperationException("Thời gian cuộc hẹn không hợp lệ");
+                }
+
+                // Cập nhật thông tin cuộc hẹn
                 appointment.Status = "Completed";
-                appointmentRepository.Update(appointment);
+                appointment.Note = note;
+                appointment.CreatedAt = DateTime.UtcNow.AddHours(7); // Cập nhật thời gian tạo theo UTC+7
+
+                _unitOfWork.GetRepository<Appointment>().Update(appointment);
                 await _unitOfWork.SaveChangesAsync();
 
-                await transaction.CommitAsync();
-
+                _logger.LogInformation($"Đã hoàn thành cuộc hẹn {appointmentId} thành công");
                 return _mapper.Map<AppointmentDTO>(appointment);
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, $"Lỗi khi hoàn thành lịch hẹn {appointmentId}");
+                _logger.LogError(ex, $"Lỗi khi hoàn thành cuộc hẹn {appointmentId}");
                 throw;
             }
         }

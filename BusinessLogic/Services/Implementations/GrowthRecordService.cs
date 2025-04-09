@@ -82,6 +82,13 @@ namespace BusinessLogic.Services.Implementations
                     throw new InvalidOperationException($"Không thể tạo record trước ngày sinh của trẻ. Ngày sinh: {child.BirthDate:dd/MM/yyyy}");
                 }
 
+                // Kiểm tra UpdatedAt mới có vượt quá currentDate không
+                var newUpdatedAt = DateTime.UtcNow;
+                if (newUpdatedAt.Date > currentDate)
+                {
+                    throw new InvalidOperationException($"Không thể tạo record trong tương lai. Ngày tạo: {newUpdatedAt:dd/MM/yyyy}");
+                }
+
                 var recordRepository = _unitOfWork.GetRepository<GrowthRecord>();
                 var record = _mapper.Map<GrowthRecord>(recordDTO);
 
@@ -89,7 +96,7 @@ namespace BusinessLogic.Services.Implementations
                 // Convert height from cm to m
                 decimal heightInMeters = recordDTO.Height / 100;
                 record.Bmi = Math.Round(recordDTO.Weight / (heightInMeters * heightInMeters), 2);
-                record.UpdatedAt = DateTime.UtcNow;
+                record.UpdatedAt = newUpdatedAt;
                 record.Note = recordDTO.Note;
 
                 await recordRepository.AddAsync(record);
@@ -134,13 +141,20 @@ namespace BusinessLogic.Services.Implementations
                     throw new InvalidOperationException($"Không thể cập nhật record trước ngày sinh của trẻ. Ngày sinh: {record.Child.BirthDate:dd/MM/yyyy}");
                 }
 
+                // Kiểm tra UpdatedAt mới có vượt quá currentDate không
+                var newUpdatedAt = DateTime.UtcNow;
+                if (newUpdatedAt.Date > currentDate)
+                {
+                    throw new InvalidOperationException($"Không thể cập nhật record trong tương lai. Ngày cập nhật: {newUpdatedAt:dd/MM/yyyy}");
+                }
+
                 _mapper.Map(recordDTO, record);
 
                 // Recalculate BMI
                 decimal heightInMeters = record.Height / 100;
                 record.Bmi = Math.Round(record.Weight / (heightInMeters * heightInMeters), 2);
 
-                record.UpdatedAt = DateTime.UtcNow;
+                record.UpdatedAt = newUpdatedAt;
                 record.Note = recordDTO.Note;
 
                 recordRepository.Update(record);

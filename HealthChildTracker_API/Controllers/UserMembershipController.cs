@@ -3,6 +3,7 @@ using BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace HealthChildTracker_API.Controllers
 {
@@ -61,21 +62,43 @@ namespace HealthChildTracker_API.Controllers
                 return StatusCode(500, "Đã xảy ra lỗi khi xử lý yêu cầu");
             }
         }
-
-        [HttpGet("user/{userId}/active")]
-        [Authorize]
-        [ProducesResponseType(typeof(UserMembershipDTO), StatusCodes.Status200OK)]
         public async Task<ActionResult<UserMembershipDTO>> GetActiveUserMembership(int userId)
         {
             try
             {
-                // Kiểm tra quyền truy cập
-                if (!User.IsInRole("Admin") && int.Parse(User.FindFirst("UserId").Value) != userId)
+                // Log thông tin user từ token để debug
+                _logger.LogInformation("Claims trong token: {Claims}",
+                    string.Join(", ", User.Claims.Select(c => $"{c.Type}: {c.Value}")));
+
+                // Lấy UserId từ claims
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+                if (userIdClaim == null)
                 {
+                    _logger.LogWarning("Không tìm thấy claim NameIdentifier trong token");
+                    return Unauthorized("Không tìm thấy thông tin người dùng trong token");
+                }
+
+                if (!int.TryParse(userIdClaim.Value, out int currentUserId))
+                {
+                    _logger.LogWarning("Giá trị UserId trong token không hợp lệ: {UserId}", userIdClaim.Value);
+                    return Unauthorized("Thông tin người dùng không hợp lệ");
+                }
+
+                // Kiểm tra quyền truy cập
+                if (!User.IsInRole("Admin") && currentUserId != userId)
+                {
+                    _logger.LogWarning("Người dùng {CurrentUserId} không có quyền truy cập thông tin của user {UserId}",
+                        currentUserId, userId);
                     return Forbid();
                 }
 
                 var membership = await _userMembershipService.GetActiveUserMembershipAsync(userId);
+                if (membership == null)
+                {
+                    _logger.LogInformation("Không tìm thấy active membership cho user {UserId}", userId);
+                    return NotFound("Không tìm thấy gói membership đang hoạt động");
+                }
+
                 return Ok(membership);
             }
             catch (Exception ex)
@@ -84,8 +107,6 @@ namespace HealthChildTracker_API.Controllers
                 return StatusCode(500, "Đã xảy ra lỗi khi xử lý yêu cầu");
             }
         }
-
-
         [HttpPut("{id}/status")]
         [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status200OK)]

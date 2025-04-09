@@ -421,7 +421,10 @@ namespace BusinessLogic.Services.Implementations
                     DateTime appointmentStartTime = schedule.WorkDate.ToDateTime(schedule.StartTime, DateTimeKind.Unspecified)
                         .AddMinutes((slotId - 1) * schedule.SlotDuration);
 
-                    if (appointmentStartTime > DateTime.UtcNow)
+                    // Chuyển đổi thời gian hiện tại sang UTC+7
+                    DateTime vietnamTime = DateTime.UtcNow.AddHours(7);
+
+                    if (appointmentStartTime > vietnamTime)
                     {
                         _logger.LogWarning($"Không thể hoàn thành cuộc hẹn {appointmentId} trước thời gian bắt đầu ({appointmentStartTime:dd/MM/yyyy HH:mm})");
                         throw new InvalidOperationException("Không thể hoàn thành cuộc hẹn trước thời gian bắt đầu");
@@ -436,7 +439,7 @@ namespace BusinessLogic.Services.Implementations
                 // Cập nhật thông tin cuộc hẹn
                 appointment.Status = "Completed";
                 appointment.Note = note;
-                appointment.CreatedAt = DateTime.UtcNow;
+                appointment.CreatedAt = DateTime.UtcNow.AddHours(7); // Cập nhật thời gian tạo theo UTC+7
 
                 _unitOfWork.GetRepository<Appointment>().Update(appointment);
                 await _unitOfWork.SaveChangesAsync();

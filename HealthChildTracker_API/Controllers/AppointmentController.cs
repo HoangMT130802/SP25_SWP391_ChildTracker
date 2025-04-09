@@ -205,35 +205,39 @@ namespace HealthChildTracker_API.Controllers
 
             try
             {
-                var doctorIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (!int.TryParse(doctorIdString, out var doctorId))
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
                 {
-                    return Unauthorized("Không thể xác định thông tin bác sĩ.");
+                    return Unauthorized(new { message = "Không thể xác định thông tin bác sĩ" });
                 }
 
-                // Gọi phương thức service đã được cập nhật
-                var completedAppointment = await _appointmentService.CompleteAppointmentAsync(appointmentId, completeDto.Note, doctorId);
+                var completedAppointment = await _appointmentService.CompleteAppointmentAsync(
+                    appointmentId,
+                    completeDto.Note,
+                    currentUserId.Value
+                );
+
                 return Ok(completedAppointment);
             }
             catch (KeyNotFoundException ex)
             {
-                _logger.LogWarning(ex, $"Appointment {appointmentId} not found for completion.");
-                return NotFound(ex.Message);
+                _logger.LogWarning(ex, $"Không tìm thấy cuộc hẹn {appointmentId}");
+                return NotFound(new { message = ex.Message });
             }
             catch (UnauthorizedAccessException ex)
             {
-                _logger.LogWarning(ex, $"Unauthorized attempt by doctor {User.FindFirstValue(ClaimTypes.NameIdentifier)} to complete appointment {appointmentId}.");
-                return Forbid(ex.Message); // Trả về 403 Forbidden
+                _logger.LogWarning(ex, $"Bác sĩ {User.FindFirstValue(ClaimTypes.NameIdentifier)} không có quyền hoàn thành cuộc hẹn {appointmentId}");
+                return Forbid(ex.Message);
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogWarning(ex, $"Invalid operation while completing appointment {appointmentId}: {ex.Message}");
-                return BadRequest(ex.Message); // Trả về 400 Bad Request
+                _logger.LogWarning(ex, $"Lỗi khi hoàn thành cuộc hẹn {appointmentId}: {ex.Message}");
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error completing appointment {appointmentId}");
-                return StatusCode(500, "Đã xảy ra lỗi khi hoàn thành cuộc hẹn.");
+                _logger.LogError(ex, $"Lỗi khi hoàn thành cuộc hẹn {appointmentId}");
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi hoàn thành cuộc hẹn" });
             }
         }
     }

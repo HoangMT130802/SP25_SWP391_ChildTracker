@@ -369,101 +369,74 @@ namespace BusinessLogic.Services.Implementations
 
         public async Task<AppointmentDTO> CompleteAppointmentAsync(int appointmentId, string note, int doctorId)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                var appointmentRepository = _unitOfWork.GetRepository<Appointment>();
-                var appointment = await appointmentRepository.GetAsync(
-                    a => a.AppointmentId == appointmentId,
-                    includeProperties: "User,Child,Schedule,Schedule.Doctor"
-                );
+                _logger.LogInformation($"Bắt đầu hoàn thành cuộc hẹn {appointmentId} bởi bác sĩ {doctorId}");
+
+                var appointment = await _unitOfWork.GetRepository<Appointment>()
+                    .GetByIdAsync(appointmentId);
 
                 if (appointment == null)
                 {
-                    throw new KeyNotFoundException($"Không tìm thấy lịch hẹn với ID {appointmentId}");
+                    _logger.LogWarning($"Không tìm thấy cuộc hẹn {appointmentId}");
+                    throw new KeyNotFoundException($"Không tìm thấy cuộc hẹn với ID {appointmentId}");
                 }
 
-                if (appointment.Schedule == null)
+                // Kiểm tra quyền truy cập
+                if (appointment.UserId != doctorId)
                 {
-                    await transaction.RollbackAsync();
-                    throw new InvalidOperationException($"Lịch hẹn {appointmentId} không có thông tin lịch trình (Schedule).");
+                    _logger.LogWarning($"Bác sĩ {doctorId} không có quyền hoàn thành cuộc hẹn {appointmentId}");
+                    throw new UnauthorizedAccessException("Bạn không có quyền hoàn thành cuộc hẹn này");
                 }
 
-                // Check doctor authorization
-                if (appointment.Schedule.DoctorId != doctorId)
+                // Kiểm tra trạng thái cuộc hẹn
+                if (appointment.Status != "Scheduled" && appointment.Status != "Ongoing")
                 {
-                    await transaction.RollbackAsync();
-                    throw new UnauthorizedAccessException("Bạn không có quyền hoàn thành cuộc hẹn này.");
+                    _logger.LogWarning($"Cuộc hẹn {appointmentId} không thể hoàn thành với trạng thái {appointment.Status}");
+                    throw new InvalidOperationException($"Không thể hoàn thành cuộc hẹn với trạng thái {appointment.Status}");
                 }
 
-                // Check appointment start time
-                DateTime appointmentStartTime;
+                // Kiểm tra thời gian
+                var schedule = await _unitOfWork.GetRepository<DoctorSchedule>()
+                    .GetByIdAsync(appointment.ScheduleId);
+
+                if (schedule == null)
+                {
+                    _logger.LogWarning($"Không tìm thấy lịch làm việc {appointment.ScheduleId} cho cuộc hẹn {appointmentId}");
+                    throw new KeyNotFoundException($"Không tìm thấy lịch làm việc cho cuộc hẹn này");
+                }
+
                 if (TimeSpan.TryParseExact(appointment.SlotTime, "hh\\:mm", CultureInfo.InvariantCulture, out var startTimeSpan))
                 {
-                    // Combine WorkDate (DateOnly) and SlotTime (TimeSpan)
-                    appointmentStartTime = appointment.Schedule.WorkDate.ToDateTime(TimeOnly.MinValue).Add(startTimeSpan);
-                    var currentTime = DateTime.Now; // Consider time zone consistency (Now vs UtcNow)
+                    DateTime appointmentStartTime = schedule.WorkDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified).Add(startTimeSpan);
 
-                    if (currentTime < appointmentStartTime)
+                    if (appointmentStartTime > DateTime.UtcNow)
                     {
-                        await transaction.RollbackAsync();
-                        throw new InvalidOperationException($"Không thể hoàn thành cuộc hẹn trước thời gian bắt đầu dự kiến: {appointmentStartTime:dd/MM/yyyy HH:mm}");
+                        _logger.LogWarning($"Không thể hoàn thành cuộc hẹn {appointmentId} trước thời gian bắt đầu ({appointmentStartTime:dd/MM/yyyy HH:mm})");
+                        throw new InvalidOperationException("Không thể hoàn thành cuộc hẹn trước thời gian bắt đầu");
                     }
-                    // *** Missing closing brace for the if block was here ***
-                }
-                else // Handle invalid SlotTime format
-                {
-                    await transaction.RollbackAsync();
-                    _logger.LogError($"SlotTime '{appointment.SlotTime}' của appointment {appointmentId} không đúng định dạng 'HH:mm'.");
-                    throw new FormatException("Định dạng thời gian của cuộc hẹn không hợp lệ.");
-                }
-                // *** End of start time check ***
-
-
-                // Check current appointment status
-                if (appointment.Status == "Cancelled")
-                {
-                    throw new InvalidOperationException("Không thể hoàn thành lịch hẹn đã hủy");
-                }
-
-                if (appointment.Status == "Completed")
-                {
-                    // Consider returning the existing completed appointment instead of throwing an error
-                    // return _mapper.Map<AppointmentDTO>(appointment);
-                    throw new InvalidOperationException("Lịch hẹn đã được hoàn thành trước đó");
-                }
-
-                // Only allow completion for scheduled or ongoing appointments
-                if (appointment.Status != "Scheduled" && appointment.Status != "Ongoing") // Adjust statuses if needed
-                {
-                    throw new InvalidOperationException($"Không thể hoàn thành cuộc hẹn ở trạng thái '{appointment.Status}'.");
-                }
-
-                // Update Note and Status
-                appointment.Note = note;
-                appointment.Status = "Completed";
-                // appointment.UpdatedAt = DateTime.UtcNow; // Optional: update timestamp
-
-                appointmentRepository.Update(appointment);
-                await _unitOfWork.SaveChangesAsync();
-
-                await transaction.CommitAsync();
-                _logger.LogInformation($"Appointment {appointmentId} completed by Doctor {doctorId}. Note added.");
-
-                return _mapper.Map<AppointmentDTO>(appointment); // Return the updated appointment DTO
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync(); // Ensure rollback on any error
-                if (ex is UnauthorizedAccessException || ex is InvalidOperationException || ex is KeyNotFoundException || ex is FormatException)
-                {
-                    _logger.LogWarning(ex, $"Validation failed when completing appointment {appointmentId}: {ex.Message}");
                 }
                 else
                 {
-                    _logger.LogError(ex, $"Lỗi khi hoàn thành lịch hẹn {appointmentId}");
+                    _logger.LogWarning($"Định dạng SlotTime '{appointment.SlotTime}' không hợp lệ cho cuộc hẹn {appointmentId}");
+                    throw new InvalidOperationException("Thời gian cuộc hẹn không hợp lệ");
                 }
-                throw; // Re-throw the exception to be handled by the controller
+
+                // Cập nhật thông tin cuộc hẹn
+                appointment.Status = "Completed";
+                appointment.Note = note;
+                appointment.CreatedAt = DateTime.UtcNow;
+
+                _unitOfWork.GetRepository<Appointment>().Update(appointment);
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation($"Đã hoàn thành cuộc hẹn {appointmentId} thành công");
+                return _mapper.Map<AppointmentDTO>(appointment);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi hoàn thành cuộc hẹn {appointmentId}");
+                throw;
             }
         }
     }

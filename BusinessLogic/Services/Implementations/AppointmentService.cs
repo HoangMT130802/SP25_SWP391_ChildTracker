@@ -376,7 +376,7 @@ namespace BusinessLogic.Services.Implementations
                 var doctorProfile = await _unitOfWork.GetRepository<DoctorProfile>()
                     .FindAsync(d => d.UserId == doctorId);
 
-                if (doctorProfile == null || !doctorProfile.Any())
+                if (doctorProfile == null || !doctorProfile.Any()) 
                 {
                     _logger.LogWarning($"Không tìm thấy thông tin bác sĩ với UserId {doctorId}");
                     throw new UnauthorizedAccessException("Bạn không phải là bác sĩ hoặc không có quyền hoàn thành cuộc hẹn này");

@@ -9,6 +9,7 @@ namespace HealthChildTracker_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UserMembershipController : ControllerBase
     {
         private readonly IUserMembershipService _userMembershipService;
@@ -20,6 +21,16 @@ namespace HealthChildTracker_API.Controllers
         {
             _userMembershipService = userMembershipService;
             _logger = logger;
+        }
+
+        private int? GetCurrentUserId()
+        {
+            var userIdClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return null;
+            }
+            return userId;
         }
 
         [HttpGet]
@@ -35,7 +46,7 @@ namespace HealthChildTracker_API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi lấy danh sách user membership");
-                return StatusCode(500, "Đã xảy ra lỗi khi xử lý yêu cầu");
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xử lý yêu cầu" });
             }
         }
 
@@ -47,56 +58,45 @@ namespace HealthChildTracker_API.Controllers
                 var membership = await _userMembershipService.GetUserMembershipByIdAsync(id);
                 if (membership == null)
                 {
-                    return NotFound($"Không tìm thấy membership với ID {id}");
+                    return NotFound(new { message = $"Không tìm thấy membership với ID {id}" });
                 }
                 return Ok(membership);
             }
             catch (KeyNotFoundException ex)
             {
                 _logger.LogWarning(ex, "Không tìm thấy membership với ID {Id}", id);
-                return NotFound(ex.Message);
+                return NotFound(new { message = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi lấy thông tin user membership {Id}", id);
-                return StatusCode(500, "Đã xảy ra lỗi khi xử lý yêu cầu");
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xử lý yêu cầu" });
             }
         }
+
+        [HttpGet("user/{userId}/active")]
+        [Authorize]
+        [ProducesResponseType(typeof(UserMembershipDTO), StatusCodes.Status200OK)]
         public async Task<ActionResult<UserMembershipDTO>> GetActiveUserMembership(int userId)
         {
             try
             {
-                // Log thông tin user từ token để debug
-                _logger.LogInformation("Claims trong token: {Claims}",
-                    string.Join(", ", User.Claims.Select(c => $"{c.Type}: {c.Value}")));
-
-                // Lấy UserId từ claims
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-                if (userIdClaim == null)
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
                 {
-                    _logger.LogWarning("Không tìm thấy claim NameIdentifier trong token");
-                    return Unauthorized("Không tìm thấy thông tin người dùng trong token");
-                }
-
-                if (!int.TryParse(userIdClaim.Value, out int currentUserId))
-                {
-                    _logger.LogWarning("Giá trị UserId trong token không hợp lệ: {UserId}", userIdClaim.Value);
-                    return Unauthorized("Thông tin người dùng không hợp lệ");
+                    return Unauthorized(new { message = "Không thể xác thực người dùng" });
                 }
 
                 // Kiểm tra quyền truy cập
-                if (!User.IsInRole("Admin") && currentUserId != userId)
+                if (!User.IsInRole("Admin") && currentUserId.Value != userId)
                 {
-                    _logger.LogWarning("Người dùng {CurrentUserId} không có quyền truy cập thông tin của user {UserId}",
-                        currentUserId, userId);
                     return Forbid();
                 }
 
                 var membership = await _userMembershipService.GetActiveUserMembershipAsync(userId);
                 if (membership == null)
                 {
-                    _logger.LogInformation("Không tìm thấy active membership cho user {UserId}", userId);
-                    return NotFound("Không tìm thấy gói membership đang hoạt động");
+                    return NotFound(new { message = "Không tìm thấy gói membership đang hoạt động" });
                 }
 
                 return Ok(membership);
@@ -104,9 +104,10 @@ namespace HealthChildTracker_API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi lấy active membership của user {UserId}", userId);
-                return StatusCode(500, "Đã xảy ra lỗi khi xử lý yêu cầu");
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xử lý yêu cầu" });
             }
         }
+
         [HttpPut("{id}/status")]
         [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -120,12 +121,12 @@ namespace HealthChildTracker_API.Controllers
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(new { message = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi cập nhật trạng thái membership {Id}", id);
-                return StatusCode(500, "Đã xảy ra lỗi khi xử lý yêu cầu");
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xử lý yêu cầu" });
             }
         }
 
@@ -137,10 +138,20 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực người dùng" });
+                }
+
                 var membership = await _userMembershipService.GetUserMembershipByIdAsync(id);
+                if (membership == null)
+                {
+                    return NotFound(new { message = "Không tìm thấy membership" });
+                }
 
                 // Kiểm tra quyền truy cập
-                if (!User.IsInRole("Admin") && int.Parse(User.FindFirst("UserId").Value) != membership.UserId)
+                if (!User.IsInRole("Admin") && currentUserId.Value != membership.UserId)
                 {
                     return Forbid();
                 }
@@ -150,16 +161,16 @@ namespace HealthChildTracker_API.Controllers
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi giảm số lượt tư vấn của membership {Id}", id);
-                return StatusCode(500, "Đã xảy ra lỗi khi xử lý yêu cầu");
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xử lý yêu cầu" });
             }
         }
 
@@ -171,10 +182,20 @@ namespace HealthChildTracker_API.Controllers
         {
             try
             {
+                var currentUserId = GetCurrentUserId();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized(new { message = "Không thể xác thực người dùng" });
+                }
+
                 var membership = await _userMembershipService.GetUserMembershipByIdAsync(id);
+                if (membership == null)
+                {
+                    return NotFound(new { message = "Không tìm thấy membership" });
+                }
 
                 // Kiểm tra quyền truy cập
-                if (!User.IsInRole("Admin") && int.Parse(User.FindFirst("UserId").Value) != membership.UserId)
+                if (!User.IsInRole("Admin") && currentUserId.Value != membership.UserId)
                 {
                     return Forbid();
                 }
@@ -184,12 +205,12 @@ namespace HealthChildTracker_API.Controllers
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(new { message = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi gia hạn membership {Id}", id);
-                return StatusCode(500, "Đã xảy ra lỗi khi xử lý yêu cầu");
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xử lý yêu cầu" });
             }
         }
     }

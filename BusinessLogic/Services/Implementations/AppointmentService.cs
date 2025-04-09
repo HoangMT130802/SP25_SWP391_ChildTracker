@@ -373,6 +373,16 @@ namespace BusinessLogic.Services.Implementations
             {
                 _logger.LogInformation($"Bắt đầu hoàn thành cuộc hẹn {appointmentId} bởi bác sĩ {doctorId}");
 
+                // Lấy thông tin bác sĩ từ DoctorProfile
+                var doctorProfile = await _unitOfWork.GetRepository<DoctorProfile>()
+                    .FindAsync(d => d.UserId == doctorId);
+
+                if (doctorProfile == null || !doctorProfile.Any())
+                {
+                    _logger.LogWarning($"Không tìm thấy thông tin bác sĩ với UserId {doctorId}");
+                    throw new UnauthorizedAccessException("Bạn không phải là bác sĩ hoặc không có quyền hoàn thành cuộc hẹn này");
+                }
+
                 var appointment = await _unitOfWork.GetRepository<Appointment>()
                     .GetByIdAsync(appointmentId);
 
@@ -382,8 +392,17 @@ namespace BusinessLogic.Services.Implementations
                     throw new KeyNotFoundException($"Không tìm thấy cuộc hẹn với ID {appointmentId}");
                 }
 
-                // Kiểm tra quyền truy cập
-                if (appointment.UserId != doctorId)
+                // Kiểm tra quyền truy cập thông qua Schedule
+                var schedule = await _unitOfWork.GetRepository<DoctorSchedule>()
+                    .GetByIdAsync(appointment.ScheduleId);
+
+                if (schedule == null)
+                {
+                    _logger.LogWarning($"Không tìm thấy lịch làm việc cho cuộc hẹn {appointmentId}");
+                    throw new KeyNotFoundException("Không tìm thấy lịch làm việc cho cuộc hẹn này");
+                }
+
+                if (schedule.DoctorId != doctorId)
                 {
                     _logger.LogWarning($"Bác sĩ {doctorId} không có quyền hoàn thành cuộc hẹn {appointmentId}");
                     throw new UnauthorizedAccessException("Bạn không có quyền hoàn thành cuộc hẹn này");
@@ -397,15 +416,6 @@ namespace BusinessLogic.Services.Implementations
                 }
 
                 // Kiểm tra thời gian
-                var schedule = await _unitOfWork.GetRepository<DoctorSchedule>()
-                    .GetByIdAsync(appointment.ScheduleId);
-
-                if (schedule == null)
-                {
-                    _logger.LogWarning($"Không tìm thấy lịch làm việc {appointment.ScheduleId} cho cuộc hẹn {appointmentId}");
-                    throw new KeyNotFoundException($"Không tìm thấy lịch làm việc cho cuộc hẹn này");
-                }
-
                 if (TimeSpan.TryParseExact(appointment.SlotTime, "hh\\:mm", CultureInfo.InvariantCulture, out var startTimeSpan))
                 {
                     DateTime appointmentStartTime = schedule.WorkDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified).Add(startTimeSpan);
